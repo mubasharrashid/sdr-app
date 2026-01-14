@@ -85,6 +85,7 @@ class Tenant(Base):
         comment="Flexible JSON for tenant-specific configuration"
     )
     
+    
     # Timestamps
     onboarded_at = Column(DateTime(timezone=True), comment="When onboarding completed")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

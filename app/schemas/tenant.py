@@ -154,6 +154,7 @@ class TenantUpdateAdmin(TenantUpdate):
     
     # Stripe integration
     stripe_customer_id: Optional[str] = None
+    
 
 
 class TenantResponse(TenantBase):
