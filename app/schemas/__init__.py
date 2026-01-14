@@ -45,6 +45,53 @@ from app.schemas.tenant_agent import (
     TenantAgentListResponse,
     AssignAgentRequest,
 )
+from app.schemas.knowledge_base import (
+    KnowledgeBaseBase,
+    KnowledgeBaseCreate,
+    KnowledgeBaseCreateInternal,
+    KnowledgeBaseUpdate,
+    KnowledgeBaseResponse,
+    KnowledgeBaseListResponse,
+    KnowledgeBaseSummary,
+)
+from app.schemas.knowledge_document import (
+    KnowledgeDocumentBase,
+    KnowledgeDocumentCreate,
+    KnowledgeDocumentCreateInternal,
+    KnowledgeDocumentUpdate,
+    KnowledgeDocumentResponse,
+    KnowledgeDocumentListResponse,
+    KnowledgeDocumentSummary,
+)
+from app.schemas.integration import (
+    IntegrationBase,
+    IntegrationCreate,
+    IntegrationUpdate,
+    IntegrationResponse,
+    IntegrationSummary,
+    IntegrationListResponse,
+)
+from app.schemas.tenant_integration import (
+    TenantIntegrationBase,
+    TenantIntegrationConnect,
+    TenantIntegrationConnectOAuth,
+    TenantIntegrationCreateInternal,
+    TenantIntegrationUpdate,
+    TenantIntegrationUpdateInternal,
+    TenantIntegrationResponse,
+    TenantIntegrationWithDetails,
+    TenantIntegrationListResponse,
+)
+from app.schemas.workflow import (
+    WorkflowBase,
+    WorkflowCreate,
+    WorkflowCreateInternal,
+    WorkflowUpdate,
+    WorkflowUpdateExecution,
+    WorkflowResponse,
+    WorkflowSummary,
+    WorkflowListResponse,
+)
 
 __all__ = [
     # Tenant schemas
@@ -88,4 +135,46 @@ __all__ = [
     "TenantAgentWithAgent",
     "TenantAgentListResponse",
     "AssignAgentRequest",
+    # KnowledgeBase schemas
+    "KnowledgeBaseBase",
+    "KnowledgeBaseCreate",
+    "KnowledgeBaseCreateInternal",
+    "KnowledgeBaseUpdate",
+    "KnowledgeBaseResponse",
+    "KnowledgeBaseListResponse",
+    "KnowledgeBaseSummary",
+    # KnowledgeDocument schemas
+    "KnowledgeDocumentBase",
+    "KnowledgeDocumentCreate",
+    "KnowledgeDocumentCreateInternal",
+    "KnowledgeDocumentUpdate",
+    "KnowledgeDocumentResponse",
+    "KnowledgeDocumentListResponse",
+    "KnowledgeDocumentSummary",
+    # Integration schemas
+    "IntegrationBase",
+    "IntegrationCreate",
+    "IntegrationUpdate",
+    "IntegrationResponse",
+    "IntegrationSummary",
+    "IntegrationListResponse",
+    # TenantIntegration schemas
+    "TenantIntegrationBase",
+    "TenantIntegrationConnect",
+    "TenantIntegrationConnectOAuth",
+    "TenantIntegrationCreateInternal",
+    "TenantIntegrationUpdate",
+    "TenantIntegrationUpdateInternal",
+    "TenantIntegrationResponse",
+    "TenantIntegrationWithDetails",
+    "TenantIntegrationListResponse",
+    # Workflow schemas
+    "WorkflowBase",
+    "WorkflowCreate",
+    "WorkflowCreateInternal",
+    "WorkflowUpdate",
+    "WorkflowUpdateExecution",
+    "WorkflowResponse",
+    "WorkflowSummary",
+    "WorkflowListResponse",
 ]
