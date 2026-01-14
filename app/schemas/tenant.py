@@ -155,11 +155,6 @@ class TenantUpdateAdmin(TenantUpdate):
     # Stripe integration
     stripe_customer_id: Optional[str] = None
     
-    # Agent assignment (admin only)
-    assigned_agent_id: Optional[UUID] = Field(
-        None,
-        description="ID of the assigned AI agent"
-    )
 
 
 class TenantResponse(TenantBase):
@@ -191,12 +186,6 @@ class TenantResponse(TenantBase):
     status: str
     settings: Dict[str, Any]
     
-    # Agent Assignment
-    assigned_agent_id: Optional[UUID] = Field(
-        None,
-        description="ID of the assigned AI agent"
-    )
-    
     # Timestamps
     onboarded_at: Optional[datetime] = None
     created_at: datetime
@@ -205,7 +194,6 @@ class TenantResponse(TenantBase):
     # Computed properties
     is_active: bool = Field(description="Whether the tenant account is active")
     is_on_paid_plan: bool = Field(description="Whether the tenant is on a paid plan")
-    has_agent_assigned: bool = Field(description="Whether tenant has an agent assigned")
     
     model_config = ConfigDict(
         from_attributes=True
@@ -250,7 +238,6 @@ class TenantSummary(BaseModel):
     logo_url: Optional[str] = None
     plan: str
     status: str
-    assigned_agent_id: Optional[UUID] = None
     
     model_config = ConfigDict(
         from_attributes=True

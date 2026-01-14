@@ -5,7 +5,7 @@ Each tenant represents a client company using the AI Agent Platform.
 All other tables reference this table via tenant_id for data isolation.
 """
 
-from sqlalchemy import Column, String, Integer, Text, DateTime, JSON, ForeignKey
+from sqlalchemy import Column, String, Integer, Text, DateTime, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -85,14 +85,6 @@ class Tenant(Base):
         comment="Flexible JSON for tenant-specific configuration"
     )
     
-    # Agent Assignment (one agent per tenant)
-    assigned_agent_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("agents.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-        comment="Foreign key to agents table - assigned AI agent"
-    )
     
     # Timestamps
     onboarded_at = Column(DateTime(timezone=True), comment="When onboarding completed")
@@ -137,8 +129,3 @@ class Tenant(Base):
     def can_add_leads(self, current_count: int) -> bool:
         """Check if tenant can add more leads."""
         return current_count < self.max_leads
-    
-    @property
-    def has_agent_assigned(self) -> bool:
-        """Check if tenant has an agent assigned."""
-        return self.assigned_agent_id is not None

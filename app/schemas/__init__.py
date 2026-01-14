@@ -35,6 +35,16 @@ from app.schemas.agent import (
     AgentSummary,
     AgentListResponse,
 )
+from app.schemas.tenant_agent import (
+    TenantAgentBase,
+    TenantAgentCreate,
+    TenantAgentCreateInternal,
+    TenantAgentUpdate,
+    TenantAgentResponse,
+    TenantAgentWithAgent,
+    TenantAgentListResponse,
+    AssignAgentRequest,
+)
 
 __all__ = [
     # Tenant schemas
@@ -69,4 +79,13 @@ __all__ = [
     "AgentResponse",
     "AgentSummary",
     "AgentListResponse",
+    # TenantAgent schemas
+    "TenantAgentBase",
+    "TenantAgentCreate",
+    "TenantAgentCreateInternal",
+    "TenantAgentUpdate",
+    "TenantAgentResponse",
+    "TenantAgentWithAgent",
+    "TenantAgentListResponse",
+    "AssignAgentRequest",
 ]
