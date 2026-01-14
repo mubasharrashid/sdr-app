@@ -23,6 +23,9 @@ class UserRepository:
     async def create(self, user: UserCreateInternal) -> Dict[str, Any]:
         """Create a new user."""
         data = user.model_dump(exclude_unset=True)
+        # Convert UUID to string for JSON serialization
+        if 'tenant_id' in data and data['tenant_id']:
+            data['tenant_id'] = str(data['tenant_id'])
         result = self.table.insert(data).execute()
         return result.data[0] if result.data else None
     
