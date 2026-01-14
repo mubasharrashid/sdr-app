@@ -154,6 +154,13 @@ class TenantUpdateAdmin(TenantUpdate):
     
     # Stripe integration
     stripe_customer_id: Optional[str] = None
+    
+    # Agent assignment (admin only)
+    assigned_agent: Optional[str] = Field(
+        None, 
+        pattern=r'^(jules|joy|george)$',
+        description="Assigned AI agent: jules, joy, or george"
+    )
 
 
 class TenantResponse(TenantBase):
@@ -185,6 +192,12 @@ class TenantResponse(TenantBase):
     status: str
     settings: Dict[str, Any]
     
+    # Agent Assignment
+    assigned_agent: Optional[str] = Field(
+        None,
+        description="Assigned AI agent: jules, joy, or george"
+    )
+    
     # Timestamps
     onboarded_at: Optional[datetime] = None
     created_at: datetime
@@ -193,6 +206,7 @@ class TenantResponse(TenantBase):
     # Computed properties
     is_active: bool = Field(description="Whether the tenant account is active")
     is_on_paid_plan: bool = Field(description="Whether the tenant is on a paid plan")
+    has_agent_assigned: bool = Field(description="Whether tenant has an agent assigned")
     
     model_config = ConfigDict(
         from_attributes=True
@@ -237,7 +251,41 @@ class TenantSummary(BaseModel):
     logo_url: Optional[str] = None
     plan: str
     status: str
+    assigned_agent: Optional[str] = None
     
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class AgentInfo(BaseModel):
+    """Information about an AI agent."""
+    
+    id: str = Field(description="Agent identifier: jules, joy, george")
+    name: str = Field(description="Display name")
+    description: str = Field(description="Agent description")
+    category: str = Field(description="Agent category")
+    
+    @staticmethod
+    def get_all() -> List["AgentInfo"]:
+        """Get all available agents."""
+        return [
+            AgentInfo(
+                id="jules",
+                name="Jules",
+                description="Marketing & Lead Generation Agent",
+                category="Marketing"
+            ),
+            AgentInfo(
+                id="joy",
+                name="Joy",
+                description="Sales & Deal Closing Agent",
+                category="Sales"
+            ),
+            AgentInfo(
+                id="george",
+                name="George",
+                description="Customer Success & Support Agent",
+                category="Customer Success"
+            ),
+        ]

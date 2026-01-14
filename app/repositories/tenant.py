@@ -93,3 +93,19 @@ class TenantRepository:
         """Count tenants by plan."""
         result = self.table.select("*", count="exact").eq("plan", plan).execute()
         return result.count if result.count else 0
+    
+    async def assign_agent(self, tenant_id: UUID, agent: Optional[str]) -> Optional[Dict[str, Any]]:
+        """Assign or unassign an agent to/from a tenant."""
+        data = {"assigned_agent": agent}
+        result = self.table.update(data).eq("id", str(tenant_id)).execute()
+        return result.data[0] if result.data else None
+    
+    async def get_by_agent(self, agent: str) -> List[Dict[str, Any]]:
+        """Get all tenants assigned to a specific agent."""
+        result = self.table.select("*").eq("assigned_agent", agent).execute()
+        return result.data
+    
+    async def count_by_agent(self, agent: str) -> int:
+        """Count tenants by assigned agent."""
+        result = self.table.select("*", count="exact").eq("assigned_agent", agent).execute()
+        return result.count if result.count else 0

@@ -85,6 +85,14 @@ class Tenant(Base):
         comment="Flexible JSON for tenant-specific configuration"
     )
     
+    # Agent Assignment (one agent per tenant)
+    assigned_agent = Column(
+        String(20),
+        nullable=True,
+        index=True,
+        comment="Assigned AI agent: jules (marketing), joy (sales), george (customer success)"
+    )
+    
     # Timestamps
     onboarded_at = Column(DateTime(timezone=True), comment="When onboarding completed")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -128,3 +136,18 @@ class Tenant(Base):
     def can_add_leads(self, current_count: int) -> bool:
         """Check if tenant can add more leads."""
         return current_count < self.max_leads
+    
+    @property
+    def has_agent_assigned(self) -> bool:
+        """Check if tenant has an agent assigned."""
+        return self.assigned_agent is not None
+    
+    @property
+    def agent_display_name(self) -> str | None:
+        """Get display name for assigned agent."""
+        agent_names = {
+            "jules": "Jules (Marketing)",
+            "joy": "Joy (Sales)",
+            "george": "George (Customer Success)"
+        }
+        return agent_names.get(self.assigned_agent)
