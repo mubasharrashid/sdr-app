@@ -6,6 +6,9 @@ from app.repositories.agent import AgentRepository
 from app.repositories.tenant_agent import TenantAgentRepository
 from app.repositories.knowledge_base import KnowledgeBaseRepository
 from app.repositories.knowledge_document import KnowledgeDocumentRepository
+from app.repositories.integration import IntegrationRepository
+from app.repositories.tenant_integration import TenantIntegrationRepository
+from app.repositories.workflow import WorkflowRepository
 
 __all__ = [
     "TenantRepository", 
@@ -16,4 +19,7 @@ __all__ = [
     "TenantAgentRepository",
     "KnowledgeBaseRepository",
     "KnowledgeDocumentRepository",
+    "IntegrationRepository",
+    "TenantIntegrationRepository",
+    "WorkflowRepository",
 ]

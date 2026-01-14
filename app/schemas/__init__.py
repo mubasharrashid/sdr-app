@@ -63,6 +63,35 @@ from app.schemas.knowledge_document import (
     KnowledgeDocumentListResponse,
     KnowledgeDocumentSummary,
 )
+from app.schemas.integration import (
+    IntegrationBase,
+    IntegrationCreate,
+    IntegrationUpdate,
+    IntegrationResponse,
+    IntegrationSummary,
+    IntegrationListResponse,
+)
+from app.schemas.tenant_integration import (
+    TenantIntegrationBase,
+    TenantIntegrationConnect,
+    TenantIntegrationConnectOAuth,
+    TenantIntegrationCreateInternal,
+    TenantIntegrationUpdate,
+    TenantIntegrationUpdateInternal,
+    TenantIntegrationResponse,
+    TenantIntegrationWithDetails,
+    TenantIntegrationListResponse,
+)
+from app.schemas.workflow import (
+    WorkflowBase,
+    WorkflowCreate,
+    WorkflowCreateInternal,
+    WorkflowUpdate,
+    WorkflowUpdateExecution,
+    WorkflowResponse,
+    WorkflowSummary,
+    WorkflowListResponse,
+)
 
 __all__ = [
     # Tenant schemas
@@ -122,4 +151,30 @@ __all__ = [
     "KnowledgeDocumentResponse",
     "KnowledgeDocumentListResponse",
     "KnowledgeDocumentSummary",
+    # Integration schemas
+    "IntegrationBase",
+    "IntegrationCreate",
+    "IntegrationUpdate",
+    "IntegrationResponse",
+    "IntegrationSummary",
+    "IntegrationListResponse",
+    # TenantIntegration schemas
+    "TenantIntegrationBase",
+    "TenantIntegrationConnect",
+    "TenantIntegrationConnectOAuth",
+    "TenantIntegrationCreateInternal",
+    "TenantIntegrationUpdate",
+    "TenantIntegrationUpdateInternal",
+    "TenantIntegrationResponse",
+    "TenantIntegrationWithDetails",
+    "TenantIntegrationListResponse",
+    # Workflow schemas
+    "WorkflowBase",
+    "WorkflowCreate",
+    "WorkflowCreateInternal",
+    "WorkflowUpdate",
+    "WorkflowUpdateExecution",
+    "WorkflowResponse",
+    "WorkflowSummary",
+    "WorkflowListResponse",
 ]
