@@ -94,18 +94,18 @@ class TenantRepository:
         result = self.table.select("*", count="exact").eq("plan", plan).execute()
         return result.count if result.count else 0
     
-    async def assign_agent(self, tenant_id: UUID, agent: Optional[str]) -> Optional[Dict[str, Any]]:
+    async def assign_agent(self, tenant_id: UUID, agent_id: Optional[UUID]) -> Optional[Dict[str, Any]]:
         """Assign or unassign an agent to/from a tenant."""
-        data = {"assigned_agent": agent}
+        data = {"assigned_agent_id": str(agent_id) if agent_id else None}
         result = self.table.update(data).eq("id", str(tenant_id)).execute()
         return result.data[0] if result.data else None
     
-    async def get_by_agent(self, agent: str) -> List[Dict[str, Any]]:
+    async def get_by_agent(self, agent_id: UUID) -> List[Dict[str, Any]]:
         """Get all tenants assigned to a specific agent."""
-        result = self.table.select("*").eq("assigned_agent", agent).execute()
+        result = self.table.select("*").eq("assigned_agent_id", str(agent_id)).execute()
         return result.data
     
-    async def count_by_agent(self, agent: str) -> int:
+    async def count_by_agent(self, agent_id: UUID) -> int:
         """Count tenants by assigned agent."""
-        result = self.table.select("*", count="exact").eq("assigned_agent", agent).execute()
+        result = self.table.select("*", count="exact").eq("assigned_agent_id", str(agent_id)).execute()
         return result.count if result.count else 0

@@ -5,7 +5,7 @@ RESTful endpoints for tenant management.
 """
 
 from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import Optional, List
+from typing import Optional
 from uuid import UUID
 from supabase import create_client, Client
 
@@ -16,15 +16,12 @@ from app.schemas.tenant import (
     TenantUpdateAdmin,
     TenantResponse,
     TenantListResponse,
-    AgentInfo,
 )
 from app.repositories.tenant import TenantRepository
+from app.repositories.agent import AgentRepository
 
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
-
-# Valid agent identifiers
-VALID_AGENTS = ["jules", "joy", "george"]
 
 
 def get_supabase() -> Client:
@@ -37,11 +34,16 @@ def get_tenant_repo(supabase: Client = Depends(get_supabase)) -> TenantRepositor
     return TenantRepository(supabase)
 
 
+def get_agent_repo(supabase: Client = Depends(get_supabase)) -> AgentRepository:
+    """Get agent repository."""
+    return AgentRepository(supabase)
+
+
 def _add_computed_fields(data: dict) -> dict:
     """Add computed fields to tenant data."""
     data["is_active"] = data.get("status") == "active"
     data["is_on_paid_plan"] = data.get("plan") in ["starter", "pro", "enterprise"]
-    data["has_agent_assigned"] = data.get("assigned_agent") is not None
+    data["has_agent_assigned"] = data.get("assigned_agent_id") is not None
     return data
 
 
@@ -178,44 +180,35 @@ async def delete_tenant(
 # AGENT ASSIGNMENT ENDPOINTS (Admin Only)
 # ============================================================================
 
-@router.get("/agents/available", response_model=List[AgentInfo], tags=["Agents"])
-async def list_available_agents():
-    """
-    List all available AI agents.
-    
-    Returns information about Jules, Joy, and George.
-    """
-    return AgentInfo.get_all()
-
-
-@router.post("/{tenant_id}/assign-agent", response_model=TenantResponse, tags=["Agents"])
+@router.post("/{tenant_id}/assign-agent", response_model=TenantResponse)
 async def assign_agent_to_tenant(
     tenant_id: UUID,
-    agent: str = Query(..., pattern=r'^(jules|joy|george)$', description="Agent to assign"),
+    agent_id: UUID = Query(..., description="ID of the agent to assign"),
     repo: TenantRepository = Depends(get_tenant_repo),
+    agent_repo: AgentRepository = Depends(get_agent_repo),
 ):
     """
     Assign an AI agent to a tenant.
     
     ⚠️ Admin only endpoint.
     
-    - **agent**: Agent identifier (jules, joy, george)
+    - **agent_id**: UUID of the agent to assign
     """
     # Check if tenant exists
     existing = await repo.get_by_id(tenant_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    # Validate agent
-    if agent not in VALID_AGENTS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid agent. Must be one of: {', '.join(VALID_AGENTS)}"
-        )
+    # Validate agent exists
+    agent = await agent_repo.get_by_id(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    if not agent.get("is_active"):
+        raise HTTPException(status_code=400, detail="Agent is not active")
     
     # Update tenant with assigned agent
-    update_data = TenantUpdateAdmin(assigned_agent=agent)
-    result = await repo.update(tenant_id, update_data)
+    result = await repo.assign_agent(tenant_id, agent_id)
     
     if not result:
         raise HTTPException(status_code=500, detail="Failed to assign agent")
@@ -223,7 +216,7 @@ async def assign_agent_to_tenant(
     return _add_computed_fields(result)
 
 
-@router.delete("/{tenant_id}/unassign-agent", response_model=TenantResponse, tags=["Agents"])
+@router.delete("/{tenant_id}/unassign-agent", response_model=TenantResponse)
 async def unassign_agent_from_tenant(
     tenant_id: UUID,
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -238,7 +231,7 @@ async def unassign_agent_from_tenant(
     if not existing:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    if not existing.get("assigned_agent"):
+    if not existing.get("assigned_agent_id"):
         raise HTTPException(status_code=400, detail="Tenant has no agent assigned")
     
     # Update tenant to remove agent

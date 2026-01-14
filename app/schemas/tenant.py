@@ -156,10 +156,9 @@ class TenantUpdateAdmin(TenantUpdate):
     stripe_customer_id: Optional[str] = None
     
     # Agent assignment (admin only)
-    assigned_agent: Optional[str] = Field(
-        None, 
-        pattern=r'^(jules|joy|george)$',
-        description="Assigned AI agent: jules, joy, or george"
+    assigned_agent_id: Optional[UUID] = Field(
+        None,
+        description="ID of the assigned AI agent"
     )
 
 
@@ -193,9 +192,9 @@ class TenantResponse(TenantBase):
     settings: Dict[str, Any]
     
     # Agent Assignment
-    assigned_agent: Optional[str] = Field(
+    assigned_agent_id: Optional[UUID] = Field(
         None,
-        description="Assigned AI agent: jules, joy, or george"
+        description="ID of the assigned AI agent"
     )
     
     # Timestamps
@@ -251,41 +250,8 @@ class TenantSummary(BaseModel):
     logo_url: Optional[str] = None
     plan: str
     status: str
-    assigned_agent: Optional[str] = None
+    assigned_agent_id: Optional[UUID] = None
     
     model_config = ConfigDict(
         from_attributes=True
     )
-
-
-class AgentInfo(BaseModel):
-    """Information about an AI agent."""
-    
-    id: str = Field(description="Agent identifier: jules, joy, george")
-    name: str = Field(description="Display name")
-    description: str = Field(description="Agent description")
-    category: str = Field(description="Agent category")
-    
-    @staticmethod
-    def get_all() -> List["AgentInfo"]:
-        """Get all available agents."""
-        return [
-            AgentInfo(
-                id="jules",
-                name="Jules",
-                description="Marketing & Lead Generation Agent",
-                category="Marketing"
-            ),
-            AgentInfo(
-                id="joy",
-                name="Joy",
-                description="Sales & Deal Closing Agent",
-                category="Sales"
-            ),
-            AgentInfo(
-                id="george",
-                name="George",
-                description="Customer Success & Support Agent",
-                category="Customer Success"
-            ),
-        ]

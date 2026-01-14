@@ -5,7 +5,7 @@ Each tenant represents a client company using the AI Agent Platform.
 All other tables reference this table via tenant_id for data isolation.
 """
 
-from sqlalchemy import Column, String, Integer, Text, DateTime, JSON
+from sqlalchemy import Column, String, Integer, Text, DateTime, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -86,11 +86,12 @@ class Tenant(Base):
     )
     
     # Agent Assignment (one agent per tenant)
-    assigned_agent = Column(
-        String(20),
+    assigned_agent_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("agents.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
-        comment="Assigned AI agent: jules (marketing), joy (sales), george (customer success)"
+        comment="Foreign key to agents table - assigned AI agent"
     )
     
     # Timestamps
@@ -140,14 +141,4 @@ class Tenant(Base):
     @property
     def has_agent_assigned(self) -> bool:
         """Check if tenant has an agent assigned."""
-        return self.assigned_agent is not None
-    
-    @property
-    def agent_display_name(self) -> str | None:
-        """Get display name for assigned agent."""
-        agent_names = {
-            "jules": "Jules (Marketing)",
-            "joy": "Joy (Sales)",
-            "george": "George (Customer Success)"
-        }
-        return agent_names.get(self.assigned_agent)
+        return self.assigned_agent_id is not None

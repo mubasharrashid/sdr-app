@@ -27,6 +27,14 @@ from app.schemas.invitation import (
     InvitationListResponse,
     InvitationVerify,
 )
+from app.schemas.agent import (
+    AgentBase,
+    AgentCreate,
+    AgentUpdate,
+    AgentResponse,
+    AgentSummary,
+    AgentListResponse,
+)
 
 __all__ = [
     # Tenant schemas
@@ -54,4 +62,11 @@ __all__ = [
     "InvitationResponseWithToken",
     "InvitationListResponse",
     "InvitationVerify",
+    # Agent schemas
+    "AgentBase",
+    "AgentCreate",
+    "AgentUpdate",
+    "AgentResponse",
+    "AgentSummary",
+    "AgentListResponse",
 ]
