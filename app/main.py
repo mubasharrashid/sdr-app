@@ -79,6 +79,9 @@ async def root():
     }
 
 
-# Import and include routers (will be added as we build)
-# from app.api.v1 import tenants
-# app.include_router(tenants.router, prefix=settings.API_V1_PREFIX)
+# Import and include routers
+from app.api.v1.tenants import router as tenants_router
+from app.api.v1.users import router as users_router
+
+app.include_router(tenants_router, prefix=settings.API_V1_PREFIX)
+app.include_router(users_router, prefix=settings.API_V1_PREFIX)
