@@ -17,6 +17,16 @@ from app.schemas.user import (
     UserListResponse,
     UserSummary,
 )
+from app.schemas.invitation import (
+    InvitationBase,
+    InvitationCreate,
+    InvitationCreateInternal,
+    InvitationAccept,
+    InvitationResponse,
+    InvitationResponseWithToken,
+    InvitationListResponse,
+    InvitationVerify,
+)
 
 __all__ = [
     # Tenant schemas
@@ -35,4 +45,13 @@ __all__ = [
     "UserResponse",
     "UserListResponse",
     "UserSummary",
+    # Invitation schemas
+    "InvitationBase",
+    "InvitationCreate",
+    "InvitationCreateInternal",
+    "InvitationAccept",
+    "InvitationResponse",
+    "InvitationResponseWithToken",
+    "InvitationListResponse",
+    "InvitationVerify",
 ]
