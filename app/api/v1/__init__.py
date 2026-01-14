@@ -6,6 +6,9 @@ from app.api.v1.agents import router as agents_router
 from app.api.v1.knowledge import router as knowledge_router
 from app.api.v1.integrations import router as integrations_router
 from app.api.v1.workflows import router as workflows_router
+from app.api.v1.executions import router as executions_router
+from app.api.v1.audit import router as audit_router
+from app.api.v1.api_keys import router as api_keys_router
 
 __all__ = [
     "tenants_router", 
@@ -15,4 +18,7 @@ __all__ = [
     "knowledge_router",
     "integrations_router",
     "workflows_router",
+    "executions_router",
+    "audit_router",
+    "api_keys_router",
 ]

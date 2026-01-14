@@ -9,6 +9,9 @@ from app.repositories.knowledge_document import KnowledgeDocumentRepository
 from app.repositories.integration import IntegrationRepository
 from app.repositories.tenant_integration import TenantIntegrationRepository
 from app.repositories.workflow import WorkflowRepository
+from app.repositories.agent_execution import AgentExecutionRepository
+from app.repositories.audit_log import AuditLogRepository, log_action
+from app.repositories.api_key import ApiKeyRepository, generate_api_key, hash_api_key
 
 __all__ = [
     "TenantRepository", 
@@ -22,4 +25,10 @@ __all__ = [
     "IntegrationRepository",
     "TenantIntegrationRepository",
     "WorkflowRepository",
+    "AgentExecutionRepository",
+    "AuditLogRepository",
+    "log_action",
+    "ApiKeyRepository",
+    "generate_api_key",
+    "hash_api_key",
 ]
