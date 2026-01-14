@@ -84,8 +84,10 @@ from app.api.v1.tenants import router as tenants_router
 from app.api.v1.users import router as users_router
 from app.api.v1.invitations import router as invitations_router
 from app.api.v1.agents import router as agents_router
+from app.api.v1.knowledge import router as knowledge_router
 
 app.include_router(tenants_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(invitations_router, prefix=settings.API_V1_PREFIX)
 app.include_router(agents_router, prefix=settings.API_V1_PREFIX)
+app.include_router(knowledge_router, prefix=settings.API_V1_PREFIX)

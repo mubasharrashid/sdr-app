@@ -45,6 +45,24 @@ from app.schemas.tenant_agent import (
     TenantAgentListResponse,
     AssignAgentRequest,
 )
+from app.schemas.knowledge_base import (
+    KnowledgeBaseBase,
+    KnowledgeBaseCreate,
+    KnowledgeBaseCreateInternal,
+    KnowledgeBaseUpdate,
+    KnowledgeBaseResponse,
+    KnowledgeBaseListResponse,
+    KnowledgeBaseSummary,
+)
+from app.schemas.knowledge_document import (
+    KnowledgeDocumentBase,
+    KnowledgeDocumentCreate,
+    KnowledgeDocumentCreateInternal,
+    KnowledgeDocumentUpdate,
+    KnowledgeDocumentResponse,
+    KnowledgeDocumentListResponse,
+    KnowledgeDocumentSummary,
+)
 
 __all__ = [
     # Tenant schemas
@@ -88,4 +106,20 @@ __all__ = [
     "TenantAgentWithAgent",
     "TenantAgentListResponse",
     "AssignAgentRequest",
+    # KnowledgeBase schemas
+    "KnowledgeBaseBase",
+    "KnowledgeBaseCreate",
+    "KnowledgeBaseCreateInternal",
+    "KnowledgeBaseUpdate",
+    "KnowledgeBaseResponse",
+    "KnowledgeBaseListResponse",
+    "KnowledgeBaseSummary",
+    # KnowledgeDocument schemas
+    "KnowledgeDocumentBase",
+    "KnowledgeDocumentCreate",
+    "KnowledgeDocumentCreateInternal",
+    "KnowledgeDocumentUpdate",
+    "KnowledgeDocumentResponse",
+    "KnowledgeDocumentListResponse",
+    "KnowledgeDocumentSummary",
 ]
