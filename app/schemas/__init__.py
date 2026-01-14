@@ -92,6 +92,37 @@ from app.schemas.workflow import (
     WorkflowSummary,
     WorkflowListResponse,
 )
+from app.schemas.agent_execution import (
+    AgentExecutionBase,
+    AgentExecutionCreate,
+    AgentExecutionCreateInternal,
+    AgentExecutionUpdate,
+    AgentExecutionUpdateMetrics,
+    AgentExecutionFeedback,
+    AgentExecutionResponse,
+    AgentExecutionSummary,
+    AgentExecutionListResponse,
+    AgentExecutionStats,
+)
+from app.schemas.audit_log import (
+    AuditLogBase,
+    AuditLogCreate,
+    AuditLogResponse,
+    AuditLogSummary,
+    AuditLogListResponse,
+    AuditLogFilter,
+)
+from app.schemas.api_key import (
+    ApiKeyBase,
+    ApiKeyCreate,
+    ApiKeyCreateInternal,
+    ApiKeyUpdate,
+    ApiKeyRevoke,
+    ApiKeyResponse,
+    ApiKeyResponseWithSecret,
+    ApiKeySummary,
+    ApiKeyListResponse,
+)
 
 __all__ = [
     # Tenant schemas
@@ -177,4 +208,32 @@ __all__ = [
     "WorkflowResponse",
     "WorkflowSummary",
     "WorkflowListResponse",
+    # AgentExecution schemas
+    "AgentExecutionBase",
+    "AgentExecutionCreate",
+    "AgentExecutionCreateInternal",
+    "AgentExecutionUpdate",
+    "AgentExecutionUpdateMetrics",
+    "AgentExecutionFeedback",
+    "AgentExecutionResponse",
+    "AgentExecutionSummary",
+    "AgentExecutionListResponse",
+    "AgentExecutionStats",
+    # AuditLog schemas
+    "AuditLogBase",
+    "AuditLogCreate",
+    "AuditLogResponse",
+    "AuditLogSummary",
+    "AuditLogListResponse",
+    "AuditLogFilter",
+    # ApiKey schemas
+    "ApiKeyBase",
+    "ApiKeyCreate",
+    "ApiKeyCreateInternal",
+    "ApiKeyUpdate",
+    "ApiKeyRevoke",
+    "ApiKeyResponse",
+    "ApiKeyResponseWithSecret",
+    "ApiKeySummary",
+    "ApiKeyListResponse",
 ]

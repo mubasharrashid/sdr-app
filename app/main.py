@@ -87,6 +87,9 @@ from app.api.v1.agents import router as agents_router
 from app.api.v1.knowledge import router as knowledge_router
 from app.api.v1.integrations import router as integrations_router
 from app.api.v1.workflows import router as workflows_router
+from app.api.v1.executions import router as executions_router
+from app.api.v1.audit import router as audit_router
+from app.api.v1.api_keys import router as api_keys_router
 
 app.include_router(tenants_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
@@ -95,3 +98,6 @@ app.include_router(agents_router, prefix=settings.API_V1_PREFIX)
 app.include_router(knowledge_router, prefix=settings.API_V1_PREFIX)
 app.include_router(integrations_router, prefix=settings.API_V1_PREFIX)
 app.include_router(workflows_router, prefix=settings.API_V1_PREFIX)
+app.include_router(executions_router, prefix=settings.API_V1_PREFIX)
+app.include_router(audit_router, prefix=settings.API_V1_PREFIX)
+app.include_router(api_keys_router, prefix=settings.API_V1_PREFIX)

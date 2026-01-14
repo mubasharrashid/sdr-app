@@ -9,6 +9,9 @@ from app.models.knowledge_document import KnowledgeDocument
 from app.models.integration import Integration
 from app.models.tenant_integration import TenantIntegration
 from app.models.workflow import Workflow
+from app.models.agent_execution import AgentExecution
+from app.models.audit_log import AuditLog
+from app.models.api_key import ApiKey
 
 __all__ = [
     "Tenant", 
@@ -21,4 +24,7 @@ __all__ = [
     "Integration",
     "TenantIntegration",
     "Workflow",
+    "AgentExecution",
+    "AuditLog",
+    "ApiKey",
 ]
