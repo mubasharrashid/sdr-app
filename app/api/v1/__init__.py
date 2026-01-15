@@ -12,6 +12,8 @@ from app.api.v1.api_keys import router as api_keys_router
 from app.api.v1.campaigns import router as campaigns_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.icps import router as icps_router
+from app.api.v1.icps import tracking_router as icp_tracking_router
 
 __all__ = [
     "tenants_router", 
@@ -27,4 +29,6 @@ __all__ = [
     "campaigns_router",
     "leads_router",
     "dashboard_router",
+    "icps_router",
+    "icp_tracking_router",
 ]

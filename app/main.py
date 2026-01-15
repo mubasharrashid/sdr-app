@@ -93,6 +93,8 @@ from app.api.v1.api_keys import router as api_keys_router
 from app.api.v1.campaigns import router as campaigns_router
 from app.api.v1.leads import router as leads_router
 from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.icps import router as icps_router
+from app.api.v1.icps import tracking_router as icp_tracking_router
 
 app.include_router(tenants_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
@@ -107,3 +109,5 @@ app.include_router(api_keys_router, prefix=settings.API_V1_PREFIX)
 app.include_router(campaigns_router, prefix=settings.API_V1_PREFIX)
 app.include_router(leads_router, prefix=settings.API_V1_PREFIX)
 app.include_router(dashboard_router, prefix=settings.API_V1_PREFIX)
+app.include_router(icps_router, prefix=settings.API_V1_PREFIX)
+app.include_router(icp_tracking_router, prefix=settings.API_V1_PREFIX)

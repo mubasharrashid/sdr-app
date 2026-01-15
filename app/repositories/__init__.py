@@ -20,6 +20,7 @@ from app.repositories.email_reply import EmailReplyRepository
 from app.repositories.lead_ai_conversation import LeadAIConversationRepository
 from app.repositories.meeting import MeetingRepository
 from app.repositories.outreach_activity_log import OutreachActivityLogRepository, log_activity
+from app.repositories.icp import ICPRepository, ICPTrackingRepository
 
 __all__ = [
     "TenantRepository", 
@@ -48,4 +49,6 @@ __all__ = [
     "MeetingRepository",
     "OutreachActivityLogRepository",
     "log_activity",
+    "ICPRepository",
+    "ICPTrackingRepository",
 ]

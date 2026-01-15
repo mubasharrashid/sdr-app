@@ -98,6 +98,8 @@ class Tenant(Base):
     # Relationships (will be populated as we add more models)
     # users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
     # invitations = relationship("Invitation", back_populates="tenant", cascade="all, delete-orphan")
+    icps = relationship("ICP", back_populates="tenant", cascade="all, delete-orphan")
+    icp_tracking_records = relationship("ICPTracking", back_populates="tenant", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name='{self.name}', slug='{self.slug}')>"
