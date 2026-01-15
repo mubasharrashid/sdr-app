@@ -14,6 +14,12 @@ from app.repositories.audit_log import AuditLogRepository, log_action
 from app.repositories.api_key import ApiKeyRepository, generate_api_key, hash_api_key
 from app.repositories.campaign import CampaignRepository
 from app.repositories.campaign_sequence import CampaignSequenceRepository
+from app.repositories.lead import LeadRepository
+from app.repositories.call_task import CallTaskRepository
+from app.repositories.email_reply import EmailReplyRepository
+from app.repositories.lead_ai_conversation import LeadAIConversationRepository
+from app.repositories.meeting import MeetingRepository
+from app.repositories.outreach_activity_log import OutreachActivityLogRepository, log_activity
 
 __all__ = [
     "TenantRepository", 
@@ -35,4 +41,11 @@ __all__ = [
     "hash_api_key",
     "CampaignRepository",
     "CampaignSequenceRepository",
+    "LeadRepository",
+    "CallTaskRepository",
+    "EmailReplyRepository",
+    "LeadAIConversationRepository",
+    "MeetingRepository",
+    "OutreachActivityLogRepository",
+    "log_activity",
 ]

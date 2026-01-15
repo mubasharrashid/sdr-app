@@ -14,6 +14,12 @@ from app.models.audit_log import AuditLog
 from app.models.api_key import ApiKey
 from app.models.campaign import Campaign
 from app.models.campaign_sequence import CampaignSequence
+from app.models.lead import Lead
+from app.models.call_task import CallTask
+from app.models.email_reply import EmailReply
+from app.models.lead_ai_conversation import LeadAIConversation
+from app.models.meeting import Meeting
+from app.models.outreach_activity_log import OutreachActivityLog
 
 __all__ = [
     "Tenant", 
@@ -31,4 +37,10 @@ __all__ = [
     "ApiKey",
     "Campaign",
     "CampaignSequence",
+    "Lead",
+    "CallTask",
+    "EmailReply",
+    "LeadAIConversation",
+    "Meeting",
+    "OutreachActivityLog",
 ]
