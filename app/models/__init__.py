@@ -12,6 +12,8 @@ from app.models.workflow import Workflow
 from app.models.agent_execution import AgentExecution
 from app.models.audit_log import AuditLog
 from app.models.api_key import ApiKey
+from app.models.campaign import Campaign
+from app.models.campaign_sequence import CampaignSequence
 
 __all__ = [
     "Tenant", 
@@ -27,4 +29,6 @@ __all__ = [
     "AgentExecution",
     "AuditLog",
     "ApiKey",
+    "Campaign",
+    "CampaignSequence",
 ]

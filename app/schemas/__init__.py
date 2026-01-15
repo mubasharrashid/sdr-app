@@ -123,6 +123,26 @@ from app.schemas.api_key import (
     ApiKeySummary,
     ApiKeyListResponse,
 )
+from app.schemas.campaign import (
+    CampaignBase,
+    CampaignCreate,
+    CampaignCreateInternal,
+    CampaignUpdate,
+    CampaignUpdateMetrics,
+    CampaignResponse,
+    CampaignSummary,
+    CampaignListResponse,
+)
+from app.schemas.campaign_sequence import (
+    CampaignSequenceBase,
+    CampaignSequenceCreate,
+    CampaignSequenceCreateInternal,
+    CampaignSequenceUpdate,
+    CampaignSequenceUpdateMetrics,
+    CampaignSequenceResponse,
+    CampaignSequenceSummary,
+    CampaignSequenceListResponse,
+)
 
 __all__ = [
     # Tenant schemas
@@ -236,4 +256,22 @@ __all__ = [
     "ApiKeyResponseWithSecret",
     "ApiKeySummary",
     "ApiKeyListResponse",
+    # Campaign schemas
+    "CampaignBase",
+    "CampaignCreate",
+    "CampaignCreateInternal",
+    "CampaignUpdate",
+    "CampaignUpdateMetrics",
+    "CampaignResponse",
+    "CampaignSummary",
+    "CampaignListResponse",
+    # CampaignSequence schemas
+    "CampaignSequenceBase",
+    "CampaignSequenceCreate",
+    "CampaignSequenceCreateInternal",
+    "CampaignSequenceUpdate",
+    "CampaignSequenceUpdateMetrics",
+    "CampaignSequenceResponse",
+    "CampaignSequenceSummary",
+    "CampaignSequenceListResponse",
 ]
