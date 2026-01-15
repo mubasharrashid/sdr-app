@@ -91,6 +91,7 @@ from app.api.v1.executions import router as executions_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.api_keys import router as api_keys_router
 from app.api.v1.campaigns import router as campaigns_router
+from app.api.v1.leads import router as leads_router
 
 app.include_router(tenants_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
@@ -103,3 +104,4 @@ app.include_router(executions_router, prefix=settings.API_V1_PREFIX)
 app.include_router(audit_router, prefix=settings.API_V1_PREFIX)
 app.include_router(api_keys_router, prefix=settings.API_V1_PREFIX)
 app.include_router(campaigns_router, prefix=settings.API_V1_PREFIX)
+app.include_router(leads_router, prefix=settings.API_V1_PREFIX)

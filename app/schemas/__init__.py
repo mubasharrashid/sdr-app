@@ -143,6 +143,60 @@ from app.schemas.campaign_sequence import (
     CampaignSequenceSummary,
     CampaignSequenceListResponse,
 )
+from app.schemas.lead import (
+    LeadBase,
+    LeadCreate,
+    LeadCreateInternal,
+    LeadUpdate,
+    LeadResponse,
+    LeadSummary,
+    LeadListResponse,
+)
+from app.schemas.call_task import (
+    CallTaskBase,
+    CallTaskCreate,
+    CallTaskCreateInternal,
+    CallTaskUpdate,
+    CallTaskComplete,
+    CallTaskResponse,
+    CallTaskSummary,
+    CallTaskListResponse,
+)
+from app.schemas.email_reply import (
+    EmailReplyBase,
+    EmailReplyCreate,
+    EmailReplyCreateInternal,
+    EmailReplyUpdate,
+    EmailReplyResponse,
+    EmailReplySummary,
+    EmailReplyListResponse,
+)
+from app.schemas.lead_ai_conversation import (
+    LeadAIConversationBase,
+    LeadAIConversationCreate,
+    LeadAIConversationCreateInternal,
+    LeadAIConversationResponse,
+    LeadAIConversationSummary,
+    LeadAIConversationListResponse,
+)
+from app.schemas.meeting import (
+    MeetingBase,
+    MeetingCreate,
+    MeetingCreateInternal,
+    MeetingUpdate,
+    MeetingComplete,
+    MeetingResponse,
+    MeetingSummary,
+    MeetingListResponse,
+)
+from app.schemas.outreach_activity_log import (
+    OutreachActivityLogBase,
+    OutreachActivityLogCreate,
+    OutreachActivityLogCreateInternal,
+    OutreachActivityLogResponse,
+    OutreachActivityLogSummary,
+    OutreachActivityLogListResponse,
+)
 
 __all__ = [
     # Tenant schemas
@@ -274,4 +328,52 @@ __all__ = [
     "CampaignSequenceResponse",
     "CampaignSequenceSummary",
     "CampaignSequenceListResponse",
+    # Lead schemas
+    "LeadBase",
+    "LeadCreate",
+    "LeadCreateInternal",
+    "LeadUpdate",
+    "LeadResponse",
+    "LeadSummary",
+    "LeadListResponse",
+    # CallTask schemas
+    "CallTaskBase",
+    "CallTaskCreate",
+    "CallTaskCreateInternal",
+    "CallTaskUpdate",
+    "CallTaskComplete",
+    "CallTaskResponse",
+    "CallTaskSummary",
+    "CallTaskListResponse",
+    # EmailReply schemas
+    "EmailReplyBase",
+    "EmailReplyCreate",
+    "EmailReplyCreateInternal",
+    "EmailReplyUpdate",
+    "EmailReplyResponse",
+    "EmailReplySummary",
+    "EmailReplyListResponse",
+    # LeadAIConversation schemas
+    "LeadAIConversationBase",
+    "LeadAIConversationCreate",
+    "LeadAIConversationCreateInternal",
+    "LeadAIConversationResponse",
+    "LeadAIConversationSummary",
+    "LeadAIConversationListResponse",
+    # Meeting schemas
+    "MeetingBase",
+    "MeetingCreate",
+    "MeetingCreateInternal",
+    "MeetingUpdate",
+    "MeetingComplete",
+    "MeetingResponse",
+    "MeetingSummary",
+    "MeetingListResponse",
+    # OutreachActivityLog schemas
+    "OutreachActivityLogBase",
+    "OutreachActivityLogCreate",
+    "OutreachActivityLogCreateInternal",
+    "OutreachActivityLogResponse",
+    "OutreachActivityLogSummary",
+    "OutreachActivityLogListResponse",
 ]

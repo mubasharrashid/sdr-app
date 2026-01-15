@@ -10,6 +10,7 @@ from app.api.v1.executions import router as executions_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.api_keys import router as api_keys_router
 from app.api.v1.campaigns import router as campaigns_router
+from app.api.v1.leads import router as leads_router
 
 __all__ = [
     "tenants_router", 
@@ -23,4 +24,5 @@ __all__ = [
     "audit_router",
     "api_keys_router",
     "campaigns_router",
+    "leads_router",
 ]
