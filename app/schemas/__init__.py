@@ -197,6 +197,22 @@ from app.schemas.outreach_activity_log import (
     OutreachActivityLogSummary,
     OutreachActivityLogListResponse,
 )
+from app.schemas.icp import (
+    ICPBase,
+    ICPCreate,
+    ICPCreateInternal,
+    ICPUpdate,
+    ICPResponse,
+    ICPSummary,
+    ICPListResponse,
+    ICPTrackingBase,
+    ICPTrackingCreate,
+    ICPTrackingCreateInternal,
+    ICPTrackingUpdate,
+    ICPTrackingProgress,
+    ICPTrackingResponse,
+    ICPTrackingListResponse,
+)
 
 __all__ = [
     # Tenant schemas
@@ -376,4 +392,20 @@ __all__ = [
     "OutreachActivityLogResponse",
     "OutreachActivityLogSummary",
     "OutreachActivityLogListResponse",
+    # ICP schemas
+    "ICPBase",
+    "ICPCreate",
+    "ICPCreateInternal",
+    "ICPUpdate",
+    "ICPResponse",
+    "ICPSummary",
+    "ICPListResponse",
+    # ICPTracking schemas
+    "ICPTrackingBase",
+    "ICPTrackingCreate",
+    "ICPTrackingCreateInternal",
+    "ICPTrackingUpdate",
+    "ICPTrackingProgress",
+    "ICPTrackingResponse",
+    "ICPTrackingListResponse",
 ]

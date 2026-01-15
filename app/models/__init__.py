@@ -20,6 +20,8 @@ from app.models.email_reply import EmailReply
 from app.models.lead_ai_conversation import LeadAIConversation
 from app.models.meeting import Meeting
 from app.models.outreach_activity_log import OutreachActivityLog
+from app.models.icp import ICP
+from app.models.icp_tracking import ICPTracking
 
 __all__ = [
     "Tenant", 
@@ -43,4 +45,6 @@ __all__ = [
     "LeadAIConversation",
     "Meeting",
     "OutreachActivityLog",
+    "ICP",
+    "ICPTracking",
 ]
