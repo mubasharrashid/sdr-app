@@ -97,6 +97,14 @@ class Lead(Base):
     unsubscribed_at = Column(TIMESTAMP(timezone=True), nullable=True)
     do_not_contact = Column(Boolean, default=False)
     
+    # Ghost tracking (AI conversation state)
+    conversation_state = Column(String(30), default="in_sequence")  # in_sequence, engaged, awaiting_reply, ghosted
+    ai_last_response_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    sequence_paused_at_step = Column(Integer, nullable=True)
+    ghost_timeout_hours = Column(Integer, default=48)
+    re_engagement_count = Column(Integer, default=0)
+    max_re_engagements = Column(Integer, default=5)
+    
     # Timestamps
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -123,3 +131,18 @@ class Lead(Base):
         if self.emails_sent == 0:
             return 0.0
         return (self.emails_opened / self.emails_sent) * 100
+    
+    @property
+    def is_awaiting_reply(self) -> bool:
+        """Check if waiting for lead's reply after AI response."""
+        return self.conversation_state == "awaiting_reply"
+    
+    @property
+    def is_in_sequence(self) -> bool:
+        """Check if lead is in normal outreach sequence."""
+        return self.conversation_state == "in_sequence"
+    
+    @property
+    def can_re_engage(self) -> bool:
+        """Check if lead can be re-engaged after ghosting."""
+        return self.re_engagement_count < (self.max_re_engagements or 5)
