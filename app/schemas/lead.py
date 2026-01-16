@@ -71,6 +71,13 @@ class LeadUpdate(BaseModel):
     ai_notes: Optional[str] = None
     is_unsubscribed: Optional[bool] = None
     do_not_contact: Optional[bool] = None
+    # Ghost tracking
+    conversation_state: Optional[str] = None
+    ai_last_response_at: Optional[datetime] = None
+    sequence_paused_at_step: Optional[int] = None
+    ghost_timeout_hours: Optional[int] = None
+    re_engagement_count: Optional[int] = None
+    max_re_engagements: Optional[int] = None
 
 
 class LeadResponse(BaseModel):
@@ -115,6 +122,14 @@ class LeadResponse(BaseModel):
     custom_fields: Dict[str, Any] = Field(default_factory=dict)
     is_unsubscribed: bool = False
     do_not_contact: bool = False
+    # Ghost tracking
+    conversation_state: str = "in_sequence"
+    ai_last_response_at: Optional[datetime] = None
+    sequence_paused_at_step: Optional[int] = None
+    ghost_timeout_hours: int = 48
+    re_engagement_count: int = 0
+    max_re_engagements: int = 5
+    # Timestamps
     created_at: datetime
     updated_at: datetime
     
@@ -122,6 +137,8 @@ class LeadResponse(BaseModel):
     display_name: Optional[str] = None
     is_contactable: Optional[bool] = None
     open_rate: Optional[float] = None
+    is_awaiting_reply: Optional[bool] = None
+    can_re_engage: Optional[bool] = None
 
 
 class LeadSummary(BaseModel):
