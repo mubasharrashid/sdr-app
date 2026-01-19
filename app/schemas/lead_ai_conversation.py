@@ -33,6 +33,12 @@ class LeadAIConversationCreate(LeadAIConversationBase):
     email_reply_id: Optional[UUID] = None
     is_sent: bool = False
     sent_at: Optional[datetime] = None
+    # BANT tracking
+    bant_budget_identified: bool = False
+    bant_authority_identified: bool = False
+    bant_need_identified: bool = False
+    bant_timeline_identified: bool = False
+    bant_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class LeadAIConversationCreateInternal(LeadAIConversationCreate):
@@ -68,6 +74,12 @@ class LeadAIConversationResponse(BaseModel):
     email_reply_id: Optional[UUID] = None
     is_sent: bool = False
     sent_at: Optional[datetime] = None
+    # BANT tracking
+    bant_budget_identified: bool = False
+    bant_authority_identified: bool = False
+    bant_need_identified: bool = False
+    bant_timeline_identified: bool = False
+    bant_data: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     
     # Computed
