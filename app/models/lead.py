@@ -105,6 +105,12 @@ class Lead(Base):
     re_engagement_count = Column(Integer, default=0)
     max_re_engagements = Column(Integer, default=5)
     
+    # BANT Qualification (Budget, Authority, Need, Timeline)
+    bant_score = Column(Integer, default=0)  # 0-12 overall score
+    bant_status = Column(String(30), default="unqualified")  # unqualified, partially_qualified, qualified
+    bant_data = Column(JSONB, default=dict)  # Full BANT details as JSON
+    bant_sales_notes = Column(Text, nullable=True)  # Summary for sales team
+    
     # Timestamps
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -146,3 +152,8 @@ class Lead(Base):
     def can_re_engage(self) -> bool:
         """Check if lead can be re-engaged after ghosting."""
         return self.re_engagement_count < (self.max_re_engagements or 5)
+    
+    @property
+    def is_bant_qualified(self) -> bool:
+        """Check if lead is BANT qualified (score >= 8)."""
+        return (self.bant_score or 0) >= 8

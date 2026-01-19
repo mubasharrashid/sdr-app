@@ -78,6 +78,11 @@ class LeadUpdate(BaseModel):
     ghost_timeout_hours: Optional[int] = None
     re_engagement_count: Optional[int] = None
     max_re_engagements: Optional[int] = None
+    # BANT qualification
+    bant_score: Optional[int] = Field(None, ge=0, le=12)
+    bant_status: Optional[str] = Field(None, pattern="^(unqualified|partially_qualified|qualified)$")
+    bant_data: Optional[Dict[str, Any]] = None
+    bant_sales_notes: Optional[str] = None
 
 
 class LeadResponse(BaseModel):
@@ -129,6 +134,11 @@ class LeadResponse(BaseModel):
     ghost_timeout_hours: int = 48
     re_engagement_count: int = 0
     max_re_engagements: int = 5
+    # BANT qualification
+    bant_score: int = 0
+    bant_status: str = "unqualified"
+    bant_data: Dict[str, Any] = Field(default_factory=dict)
+    bant_sales_notes: Optional[str] = None
     # Timestamps
     created_at: datetime
     updated_at: datetime
@@ -139,6 +149,7 @@ class LeadResponse(BaseModel):
     open_rate: Optional[float] = None
     is_awaiting_reply: Optional[bool] = None
     can_re_engage: Optional[bool] = None
+    is_bant_qualified: Optional[bool] = None
 
 
 class LeadSummary(BaseModel):

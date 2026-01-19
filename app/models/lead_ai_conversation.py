@@ -58,6 +58,9 @@ class LeadAIConversation(Base):
     is_sent = Column(Boolean, default=False)
     sent_at = Column(TIMESTAMP(timezone=True), nullable=True)
     
+    # BANT tracking for this message
+    bant_data = Column(JSONB, default=dict)  # BANT qualification data from AI response
+    
     # Timestamps
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
     
