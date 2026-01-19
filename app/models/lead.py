@@ -106,18 +106,10 @@ class Lead(Base):
     max_re_engagements = Column(Integer, default=5)
     
     # BANT Qualification (Budget, Authority, Need, Timeline)
-    bant_budget_score = Column(Integer, default=0)  # 0-3
-    bant_authority_score = Column(Integer, default=0)  # 0-3
-    bant_need_score = Column(Integer, default=0)  # 0-3
-    bant_timeline_score = Column(Integer, default=0)  # 0-3
-    bant_budget_details = Column(Text, nullable=True)
-    bant_authority_details = Column(Text, nullable=True)
-    bant_need_details = Column(Text, nullable=True)
-    bant_timeline_details = Column(Text, nullable=True)
-    bant_overall_score = Column(Integer, default=0)  # 0-12
-    bant_qualification_status = Column(String(30), default="unqualified")  # unqualified, partially_qualified, qualified
-    bant_sales_notes = Column(Text, nullable=True)
-    bant_updated_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    bant_score = Column(Integer, default=0)  # 0-12 overall score
+    bant_status = Column(String(30), default="unqualified")  # unqualified, partially_qualified, qualified
+    bant_data = Column(JSONB, default=dict)  # Full BANT details as JSON
+    bant_sales_notes = Column(Text, nullable=True)  # Summary for sales team
     
     # Timestamps
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
@@ -164,18 +156,4 @@ class Lead(Base):
     @property
     def is_bant_qualified(self) -> bool:
         """Check if lead is BANT qualified (score >= 8)."""
-        return (self.bant_overall_score or 0) >= 8
-    
-    @property
-    def bant_criteria_met(self) -> int:
-        """Count how many BANT criteria have been identified (score > 0)."""
-        count = 0
-        if self.bant_budget_score and self.bant_budget_score > 0:
-            count += 1
-        if self.bant_authority_score and self.bant_authority_score > 0:
-            count += 1
-        if self.bant_need_score and self.bant_need_score > 0:
-            count += 1
-        if self.bant_timeline_score and self.bant_timeline_score > 0:
-            count += 1
-        return count
+        return (self.bant_score or 0) >= 8

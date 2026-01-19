@@ -34,10 +34,6 @@ class LeadAIConversationCreate(LeadAIConversationBase):
     is_sent: bool = False
     sent_at: Optional[datetime] = None
     # BANT tracking
-    bant_budget_identified: bool = False
-    bant_authority_identified: bool = False
-    bant_need_identified: bool = False
-    bant_timeline_identified: bool = False
     bant_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
@@ -75,10 +71,6 @@ class LeadAIConversationResponse(BaseModel):
     is_sent: bool = False
     sent_at: Optional[datetime] = None
     # BANT tracking
-    bant_budget_identified: bool = False
-    bant_authority_identified: bool = False
-    bant_need_identified: bool = False
-    bant_timeline_identified: bool = False
     bant_data: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     

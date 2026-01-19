@@ -59,11 +59,7 @@ class LeadAIConversation(Base):
     sent_at = Column(TIMESTAMP(timezone=True), nullable=True)
     
     # BANT tracking for this message
-    bant_budget_identified = Column(Boolean, default=False)
-    bant_authority_identified = Column(Boolean, default=False)
-    bant_need_identified = Column(Boolean, default=False)
-    bant_timeline_identified = Column(Boolean, default=False)
-    bant_data = Column(JSONB, default=dict)  # Full BANT qualification data from AI
+    bant_data = Column(JSONB, default=dict)  # BANT qualification data from AI response
     
     # Timestamps
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
