@@ -24,6 +24,8 @@ from app.schemas.campaign_sequence import (
     CampaignSequenceResponse,
     CampaignSequenceListResponse
 )
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
@@ -104,7 +106,7 @@ def _add_sequence_computed_fields(data: dict) -> dict:
 # Campaign Endpoints
 # ============================================================================
 
-@router.post("/tenants/{tenant_id}", response_model=CampaignResponse)
+@router.post("/tenants/{tenant_id}", response_model=ApiResponse)
 async def create_campaign(
     tenant_id: UUID,
     data: CampaignCreate,
@@ -130,16 +132,16 @@ async def create_campaign(
     )
     
     campaign = await campaign_repo.create(create_data)
-    return _add_campaign_computed_fields(campaign)
+    return success_response(data=_add_campaign_computed_fields(campaign), message="Campaign created successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}", response_model=CampaignListResponse)
+@router.get("/tenants/{tenant_id}", response_model=ApiResponse)
 async def list_campaigns(
     tenant_id: UUID,
     status: Optional[str] = Query(None, description="Filter by status"),
     campaign_type: Optional[str] = Query(None, description="Filter by type"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     campaign_repo: CampaignRepository = Depends(get_campaign_repo)
 ):
@@ -148,20 +150,24 @@ async def list_campaigns(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
+    skip = (page - 1) * pageSize
     items, total = await campaign_repo.get_by_tenant(
         tenant_id, 
         status=status,
         campaign_type=campaign_type,
         skip=skip, 
-        limit=limit
+        limit=pageSize
     )
-    return CampaignListResponse(
+    return paginated_response(
         items=[_add_campaign_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Campaigns retrieved successfully"
     )
 
 
-@router.get("/tenants/{tenant_id}/{campaign_id}", response_model=CampaignResponse)
+@router.get("/tenants/{tenant_id}/{campaign_id}", response_model=ApiResponse)
 async def get_campaign(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -175,10 +181,10 @@ async def get_campaign(
     if str(campaign.get("tenant_id")) != str(tenant_id):
         raise HTTPException(status_code=403, detail="Campaign belongs to another tenant")
     
-    return _add_campaign_computed_fields(campaign)
+    return success_response(data=_add_campaign_computed_fields(campaign), message="Campaign retrieved successfully")
 
 
-@router.patch("/tenants/{tenant_id}/{campaign_id}", response_model=CampaignResponse)
+@router.patch("/tenants/{tenant_id}/{campaign_id}", response_model=ApiResponse)
 async def update_campaign(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -201,10 +207,10 @@ async def update_campaign(
             raise HTTPException(status_code=404, detail="Agent not found")
     
     updated = await campaign_repo.update(campaign_id, data)
-    return _add_campaign_computed_fields(updated)
+    return success_response(data=_add_campaign_computed_fields(updated), message="Campaign updated successfully")
 
 
-@router.post("/tenants/{tenant_id}/{campaign_id}/start", response_model=CampaignResponse)
+@router.post("/tenants/{tenant_id}/{campaign_id}/start", response_model=ApiResponse)
 async def start_campaign(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -222,10 +228,10 @@ async def start_campaign(
         raise HTTPException(status_code=400, detail="Campaign cannot be started from current status")
     
     started = await campaign_repo.start(campaign_id)
-    return _add_campaign_computed_fields(started)
+    return success_response(data=_add_campaign_computed_fields(started), message="Campaign started successfully")
 
 
-@router.post("/tenants/{tenant_id}/{campaign_id}/pause", response_model=CampaignResponse)
+@router.post("/tenants/{tenant_id}/{campaign_id}/pause", response_model=ApiResponse)
 async def pause_campaign(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -243,10 +249,10 @@ async def pause_campaign(
         raise HTTPException(status_code=400, detail="Only active campaigns can be paused")
     
     paused = await campaign_repo.pause(campaign_id)
-    return _add_campaign_computed_fields(paused)
+    return success_response(data=_add_campaign_computed_fields(paused), message="Campaign paused successfully")
 
 
-@router.post("/tenants/{tenant_id}/{campaign_id}/resume", response_model=CampaignResponse)
+@router.post("/tenants/{tenant_id}/{campaign_id}/resume", response_model=ApiResponse)
 async def resume_campaign(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -264,10 +270,10 @@ async def resume_campaign(
         raise HTTPException(status_code=400, detail="Only paused campaigns can be resumed")
     
     resumed = await campaign_repo.resume(campaign_id)
-    return _add_campaign_computed_fields(resumed)
+    return success_response(data=_add_campaign_computed_fields(resumed), message="Campaign resumed successfully")
 
 
-@router.post("/tenants/{tenant_id}/{campaign_id}/complete", response_model=CampaignResponse)
+@router.post("/tenants/{tenant_id}/{campaign_id}/complete", response_model=ApiResponse)
 async def complete_campaign(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -282,10 +288,10 @@ async def complete_campaign(
         raise HTTPException(status_code=403, detail="Campaign belongs to another tenant")
     
     completed = await campaign_repo.complete(campaign_id)
-    return _add_campaign_computed_fields(completed)
+    return success_response(data=_add_campaign_computed_fields(completed), message="Campaign completed successfully")
 
 
-@router.delete("/tenants/{tenant_id}/{campaign_id}")
+@router.delete("/tenants/{tenant_id}/{campaign_id}", response_model=ApiResponse)
 async def delete_campaign(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -304,14 +310,14 @@ async def delete_campaign(
     await sequence_repo.delete_by_campaign(campaign_id)
     await campaign_repo.delete(campaign_id)
     
-    return {"message": "Campaign deleted"}
+    return success_response(data=None, message="Campaign deleted successfully")
 
 
 # ============================================================================
 # Campaign Sequence Endpoints
 # ============================================================================
 
-@router.post("/tenants/{tenant_id}/{campaign_id}/sequences", response_model=CampaignSequenceResponse)
+@router.post("/tenants/{tenant_id}/{campaign_id}/sequences", response_model=ApiResponse)
 async def create_sequence_step(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -342,10 +348,10 @@ async def create_sequence_step(
     )
     
     sequence = await sequence_repo.create(create_data)
-    return _add_sequence_computed_fields(sequence)
+    return success_response(data=_add_sequence_computed_fields(sequence), message="Sequence step created successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}/{campaign_id}/sequences", response_model=CampaignSequenceListResponse)
+@router.get("/tenants/{tenant_id}/{campaign_id}/sequences", response_model=ApiResponse)
 async def list_sequence_steps(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -362,13 +368,11 @@ async def list_sequence_steps(
         raise HTTPException(status_code=403, detail="Campaign belongs to another tenant")
     
     items = await sequence_repo.get_by_campaign(campaign_id, active_only=active_only)
-    return CampaignSequenceListResponse(
-        items=[_add_sequence_computed_fields(i) for i in items],
-        total=len(items)
-    )
+    processed_items = [_add_sequence_computed_fields(i) for i in items]
+    return success_response(data={"items": processed_items, "total": len(processed_items)}, message="Sequence steps retrieved successfully")
 
 
-@router.get("/tenants/{tenant_id}/{campaign_id}/sequences/{sequence_id}", response_model=CampaignSequenceResponse)
+@router.get("/tenants/{tenant_id}/{campaign_id}/sequences/{sequence_id}", response_model=ApiResponse)
 async def get_sequence_step(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -386,10 +390,10 @@ async def get_sequence_step(
     if str(sequence.get("campaign_id")) != str(campaign_id):
         raise HTTPException(status_code=403, detail="Sequence belongs to another campaign")
     
-    return _add_sequence_computed_fields(sequence)
+    return success_response(data=_add_sequence_computed_fields(sequence), message="Sequence step retrieved successfully")
 
 
-@router.patch("/tenants/{tenant_id}/{campaign_id}/sequences/{sequence_id}", response_model=CampaignSequenceResponse)
+@router.patch("/tenants/{tenant_id}/{campaign_id}/sequences/{sequence_id}", response_model=ApiResponse)
 async def update_sequence_step(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -409,10 +413,10 @@ async def update_sequence_step(
         raise HTTPException(status_code=403, detail="Sequence belongs to another campaign")
     
     updated = await sequence_repo.update(sequence_id, data)
-    return _add_sequence_computed_fields(updated)
+    return success_response(data=_add_sequence_computed_fields(updated), message="Sequence step updated successfully")
 
 
-@router.delete("/tenants/{tenant_id}/{campaign_id}/sequences/{sequence_id}")
+@router.delete("/tenants/{tenant_id}/{campaign_id}/sequences/{sequence_id}", response_model=ApiResponse)
 async def delete_sequence_step(
     tenant_id: UUID,
     campaign_id: UUID,
@@ -431,4 +435,4 @@ async def delete_sequence_step(
         raise HTTPException(status_code=403, detail="Sequence belongs to another campaign")
     
     await sequence_repo.delete(sequence_id)
-    return {"message": "Sequence step deleted"}
+    return success_response(data=None, message="Sequence step deleted successfully")

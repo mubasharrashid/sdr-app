@@ -25,6 +25,8 @@ from app.schemas.tenant_agent import (
 from app.repositories.tenant import TenantRepository
 from app.repositories.agent import AgentRepository
 from app.repositories.tenant_agent import TenantAgentRepository
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
@@ -57,7 +59,7 @@ def _add_computed_fields(data: dict) -> dict:
     return data
 
 
-@router.post("", response_model=TenantResponse, status_code=201)
+@router.post("", response_model=ApiResponse, status_code=201)
 async def create_tenant(
     tenant: TenantCreate,
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -80,13 +82,13 @@ async def create_tenant(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to create tenant")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="Tenant created successfully", status_code=201)
 
 
-@router.get("", response_model=TenantListResponse)
+@router.get("", response_model=ApiResponse)
 async def list_tenants(
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     status: Optional[str] = Query(None, description="Filter by status"),
     plan: Optional[str] = Query(None, description="Filter by plan"),
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -94,26 +96,24 @@ async def list_tenants(
     """
     List all tenants with pagination and optional filters.
     """
-    skip = (page - 1) * page_size
+    skip = (page - 1) * pageSize
     tenants, total = await repo.get_all(
         skip=skip,
-        limit=page_size,
+        limit=pageSize,
         status=status,
         plan=plan,
     )
     
-    pages = (total + page_size - 1) // page_size if total > 0 else 0
-    
-    return TenantListResponse(
+    return paginated_response(
         items=[_add_computed_fields(t) for t in tenants],
         total=total,
         page=page,
-        page_size=page_size,
-        pages=pages,
+        page_size=pageSize,
+        message="Tenants retrieved successfully"
     )
 
 
-@router.get("/{tenant_id}", response_model=TenantResponse)
+@router.get("/{tenant_id}", response_model=ApiResponse)
 async def get_tenant(
     tenant_id: UUID,
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -125,10 +125,10 @@ async def get_tenant(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    return _add_computed_fields(tenant)
+    return success_response(data=_add_computed_fields(tenant), message="Tenant retrieved successfully")
 
 
-@router.get("/slug/{slug}", response_model=TenantResponse)
+@router.get("/slug/{slug}", response_model=ApiResponse)
 async def get_tenant_by_slug(
     slug: str,
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -140,10 +140,10 @@ async def get_tenant_by_slug(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    return _add_computed_fields(tenant)
+    return success_response(data=_add_computed_fields(tenant), message="Tenant retrieved successfully")
 
 
-@router.patch("/{tenant_id}", response_model=TenantResponse)
+@router.patch("/{tenant_id}", response_model=ApiResponse)
 async def update_tenant(
     tenant_id: UUID,
     tenant: TenantUpdate,
@@ -161,10 +161,10 @@ async def update_tenant(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to update tenant")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="Tenant updated successfully")
 
 
-@router.delete("/{tenant_id}", status_code=204)
+@router.delete("/{tenant_id}", response_model=ApiResponse)
 async def delete_tenant(
     tenant_id: UUID,
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -183,14 +183,14 @@ async def delete_tenant(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete tenant")
     
-    return None
+    return success_response(data=None, message="Tenant deleted successfully")
 
 
 # ============================================================================
 # AGENT ASSIGNMENT ENDPOINTS (Admin Only)
 # ============================================================================
 
-@router.post("/{tenant_id}/assign-agent", response_model=TenantAgentResponse)
+@router.post("/{tenant_id}/assign-agent", response_model=ApiResponse)
 async def assign_agent_to_tenant(
     tenant_id: UUID,
     request: AssignAgentRequest,
@@ -228,7 +228,7 @@ async def assign_agent_to_tenant(
         # Reactivate if it was deactivated
         if not existing.get("is_active"):
             result = await tenant_agent_repo.activate(existing.get("id"))
-            return result
+            return success_response(data=result, message="Agent reassigned successfully")
         raise HTTPException(status_code=400, detail="Agent is already assigned to this tenant")
     
     # Deactivate any existing active agent (one-agent-per-tenant)
@@ -246,10 +246,10 @@ async def assign_agent_to_tenant(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to assign agent")
     
-    return result
+    return success_response(data=result, message="Agent assigned successfully")
 
 
-@router.get("/{tenant_id}/agent", response_model=TenantAgentResponse)
+@router.get("/{tenant_id}/agent", response_model=ApiResponse)
 async def get_tenant_agent(
     tenant_id: UUID,
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -267,10 +267,10 @@ async def get_tenant_agent(
     if not tenant_agent:
         raise HTTPException(status_code=404, detail="No active agent assigned to this tenant")
     
-    return tenant_agent
+    return success_response(data=tenant_agent, message="Agent retrieved successfully")
 
 
-@router.patch("/{tenant_id}/agent", response_model=TenantAgentResponse)
+@router.patch("/{tenant_id}/agent", response_model=ApiResponse)
 async def update_tenant_agent(
     tenant_id: UUID,
     update: TenantAgentUpdate,
@@ -295,10 +295,10 @@ async def update_tenant_agent(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to update agent configuration")
     
-    return result
+    return success_response(data=result, message="Agent configuration updated successfully")
 
 
-@router.delete("/{tenant_id}/agent", status_code=204)
+@router.delete("/{tenant_id}/agent", response_model=ApiResponse)
 async def unassign_agent_from_tenant(
     tenant_id: UUID,
     repo: TenantRepository = Depends(get_tenant_repo),
@@ -320,4 +320,4 @@ async def unassign_agent_from_tenant(
     
     await tenant_agent_repo.deactivate(tenant_agent.get("id"))
     
-    return None
+    return success_response(data=None, message="Agent unassigned successfully")

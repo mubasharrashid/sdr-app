@@ -25,6 +25,8 @@ from app.schemas.user import UserCreateInternal
 from app.repositories.invitation import InvitationRepository, generate_invitation_token
 from app.repositories.user import UserRepository
 from app.repositories.tenant import TenantRepository
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 
 router = APIRouter(prefix="/invitations", tags=["Invitations"])
@@ -70,7 +72,7 @@ def _add_computed_fields(data: dict) -> dict:
     return data
 
 
-@router.post("", response_model=InvitationResponseWithToken, status_code=201)
+@router.post("", response_model=ApiResponse, status_code=201)
 async def create_invitation(
     invitation: InvitationCreate,
     repo: InvitationRepository = Depends(get_invitation_repo),
@@ -124,40 +126,38 @@ async def create_invitation(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to create invitation")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="Invitation created successfully", status_code=201)
 
 
-@router.get("/tenant/{tenant_id}", response_model=InvitationListResponse)
+@router.get("/tenant/{tenant_id}", response_model=ApiResponse)
 async def list_invitations_by_tenant(
     tenant_id: UUID,
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     status: Optional[str] = Query(None, description="Filter by status"),
     repo: InvitationRepository = Depends(get_invitation_repo),
 ):
     """
     List all invitations for a tenant with pagination.
     """
-    skip = (page - 1) * page_size
+    skip = (page - 1) * pageSize
     invitations, total = await repo.get_by_tenant(
         tenant_id=tenant_id,
         skip=skip,
-        limit=page_size,
+        limit=pageSize,
         status=status,
     )
     
-    pages = (total + page_size - 1) // page_size if total > 0 else 0
-    
-    return InvitationListResponse(
+    return paginated_response(
         items=[_add_computed_fields(i) for i in invitations],
         total=total,
         page=page,
-        page_size=page_size,
-        pages=pages,
+        page_size=pageSize,
+        message="Invitations retrieved successfully"
     )
 
 
-@router.get("/verify/{token}", response_model=InvitationVerify)
+@router.get("/verify/{token}", response_model=ApiResponse)
 async def verify_invitation(
     token: str,
     repo: InvitationRepository = Depends(get_invitation_repo),
@@ -171,7 +171,7 @@ async def verify_invitation(
     invitation = await repo.get_by_token(token)
     
     if not invitation:
-        return InvitationVerify(valid=False)
+        return success_response(data={"valid": False}, message="Invitation not found")
     
     # Check status and expiration
     status = invitation.get("status")
@@ -188,23 +188,24 @@ async def verify_invitation(
     is_valid = status == "pending" and not is_expired
     
     if not is_valid:
-        return InvitationVerify(valid=False)
+        return success_response(data={"valid": False}, message="Invitation is not valid")
     
     # Get tenant name
     tenant = await tenant_repo.get_by_id(invitation.get("tenant_id"))
     tenant_name = tenant.get("name") if tenant else None
     
-    return InvitationVerify(
-        valid=True,
-        email=invitation.get("email"),
-        role=invitation.get("role"),
-        tenant_name=tenant_name,
-        expires_at=expires_at,
-        message=invitation.get("message"),
-    )
+    verify_data = {
+        "valid": True,
+        "email": invitation.get("email"),
+        "role": invitation.get("role"),
+        "tenant_name": tenant_name,
+        "expires_at": expires_at,
+        "message": invitation.get("message"),
+    }
+    return success_response(data=verify_data, message="Invitation verified successfully")
 
 
-@router.post("/accept", response_model=dict)
+@router.post("/accept", response_model=ApiResponse)
 async def accept_invitation(
     acceptance: InvitationAccept,
     repo: InvitationRepository = Depends(get_invitation_repo),
@@ -266,15 +267,15 @@ async def accept_invitation(
     # Mark invitation as accepted
     await repo.accept(invitation.get("id"), new_user.get("id"))
     
-    return {
-        "message": "Invitation accepted successfully",
+    result = {
         "user_id": new_user.get("id"),
         "email": email,
         "tenant_id": tenant_id,
     }
+    return success_response(data=result, message="Invitation accepted successfully")
 
 
-@router.get("/{invitation_id}", response_model=InvitationResponse)
+@router.get("/{invitation_id}", response_model=ApiResponse)
 async def get_invitation(
     invitation_id: UUID,
     repo: InvitationRepository = Depends(get_invitation_repo),
@@ -286,10 +287,10 @@ async def get_invitation(
     if not invitation:
         raise HTTPException(status_code=404, detail="Invitation not found")
     
-    return _add_computed_fields(invitation)
+    return success_response(data=_add_computed_fields(invitation), message="Invitation retrieved successfully")
 
 
-@router.post("/{invitation_id}/cancel", response_model=InvitationResponse)
+@router.post("/{invitation_id}/cancel", response_model=ApiResponse)
 async def cancel_invitation(
     invitation_id: UUID,
     repo: InvitationRepository = Depends(get_invitation_repo),
@@ -308,10 +309,10 @@ async def cancel_invitation(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to cancel invitation")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="Invitation cancelled successfully")
 
 
-@router.post("/{invitation_id}/resend", response_model=InvitationResponseWithToken)
+@router.post("/{invitation_id}/resend", response_model=ApiResponse)
 async def resend_invitation(
     invitation_id: UUID,
     expires_in_days: int = Query(7, ge=1, le=30),
@@ -331,10 +332,10 @@ async def resend_invitation(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to resend invitation")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="Invitation resent successfully")
 
 
-@router.delete("/{invitation_id}", status_code=204)
+@router.delete("/{invitation_id}", response_model=ApiResponse)
 async def delete_invitation(
     invitation_id: UUID,
     repo: InvitationRepository = Depends(get_invitation_repo),
@@ -350,4 +351,4 @@ async def delete_invitation(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete invitation")
     
-    return None
+    return success_response(data=None, message="Invitation deleted successfully")

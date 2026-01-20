@@ -14,6 +14,8 @@ from app.schemas.audit_log import (
     AuditLogListResponse,
     AuditLogFilter
 )
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -44,7 +46,7 @@ def _add_computed_fields(data: dict) -> dict:
     return data
 
 
-@router.get("/tenants/{tenant_id}", response_model=AuditLogListResponse)
+@router.get("/tenants/{tenant_id}", response_model=ApiResponse)
 async def list_tenant_audit_logs(
     tenant_id: UUID,
     action: Optional[str] = Query(None, description="Filter by action"),
@@ -54,8 +56,8 @@ async def list_tenant_audit_logs(
     severity: Optional[str] = Query(None, description="Filter by severity"),
     start_date: Optional[datetime] = Query(None, description="Filter from date"),
     end_date: Optional[datetime] = Query(None, description="Filter to date"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     audit_repo: AuditLogRepository = Depends(get_audit_repo)
 ):
@@ -75,19 +77,23 @@ async def list_tenant_audit_logs(
         end_date=end_date
     )
     
+    skip = (page - 1) * pageSize
     items, total = await audit_repo.get_by_tenant(
         tenant_id, 
         filters=filters,
         skip=skip, 
-        limit=limit
+        limit=pageSize
     )
-    return AuditLogListResponse(
+    return paginated_response(
         items=[_add_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Audit logs retrieved successfully"
     )
 
 
-@router.get("/tenants/{tenant_id}/{log_id}", response_model=AuditLogResponse)
+@router.get("/tenants/{tenant_id}/{log_id}", response_model=ApiResponse)
 async def get_audit_log(
     tenant_id: UUID,
     log_id: UUID,
@@ -101,14 +107,14 @@ async def get_audit_log(
     if log.get("tenant_id") and str(log.get("tenant_id")) != str(tenant_id):
         raise HTTPException(status_code=403, detail="Log belongs to another tenant")
     
-    return _add_computed_fields(log)
+    return success_response(data=_add_computed_fields(log), message="Audit log retrieved successfully")
 
 
-@router.get("/tenants/{tenant_id}/errors", response_model=AuditLogListResponse)
+@router.get("/tenants/{tenant_id}/errors", response_model=ApiResponse)
 async def list_error_logs(
     tenant_id: UUID,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     audit_repo: AuditLogRepository = Depends(get_audit_repo)
 ):
@@ -117,41 +123,53 @@ async def list_error_logs(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    items, total = await audit_repo.get_errors(tenant_id, skip=skip, limit=limit)
-    return AuditLogListResponse(
+    skip = (page - 1) * pageSize
+    items, total = await audit_repo.get_errors(tenant_id, skip=skip, limit=pageSize)
+    return paginated_response(
         items=[_add_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Error logs retrieved successfully"
     )
 
 
-@router.get("/resources/{resource_type}/{resource_id}", response_model=AuditLogListResponse)
+@router.get("/resources/{resource_type}/{resource_id}", response_model=ApiResponse)
 async def list_resource_audit_logs(
     resource_type: str,
     resource_id: UUID,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     audit_repo: AuditLogRepository = Depends(get_audit_repo)
 ):
     """List audit logs for a specific resource."""
+    skip = (page - 1) * pageSize
     items, total = await audit_repo.get_by_resource(
-        resource_type, resource_id, skip=skip, limit=limit
+        resource_type, resource_id, skip=skip, limit=pageSize
     )
-    return AuditLogListResponse(
+    return paginated_response(
         items=[_add_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Audit logs retrieved successfully"
     )
 
 
-@router.get("/users/{user_id}", response_model=AuditLogListResponse)
+@router.get("/users/{user_id}", response_model=ApiResponse)
 async def list_user_audit_logs(
     user_id: UUID,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     audit_repo: AuditLogRepository = Depends(get_audit_repo)
 ):
     """List audit logs for a specific user."""
-    items, total = await audit_repo.get_by_user(user_id, skip=skip, limit=limit)
-    return AuditLogListResponse(
+    skip = (page - 1) * pageSize
+    items, total = await audit_repo.get_by_user(user_id, skip=skip, limit=pageSize)
+    return paginated_response(
         items=[_add_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Audit logs retrieved successfully"
     )

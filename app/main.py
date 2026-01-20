@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.router import setup_response_handlers
 from app.db.session import init_db, close_db
 
 
@@ -56,6 +57,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Setup standardized response handlers (for errors)
+setup_response_handlers(app)
 
 
 # Health check endpoint

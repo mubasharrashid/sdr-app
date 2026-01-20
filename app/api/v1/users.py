@@ -22,6 +22,8 @@ from app.schemas.user import (
 )
 from app.repositories.user import UserRepository
 from app.repositories.tenant import TenantRepository
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -50,7 +52,7 @@ def _add_computed_fields(data: dict) -> dict:
     return data
 
 
-@router.post("", response_model=UserResponse, status_code=201)
+@router.post("", response_model=ApiResponse, status_code=201)
 async def create_user(
     user: UserCreate,
     repo: UserRepository = Depends(get_user_repo),
@@ -102,14 +104,14 @@ async def create_user(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to create user")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="User created successfully", status_code=201)
 
 
-@router.get("/tenant/{tenant_id}", response_model=UserListResponse)
+@router.get("/tenant/{tenant_id}", response_model=ApiResponse)
 async def list_users_by_tenant(
     tenant_id: UUID,
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     status: Optional[str] = Query(None, description="Filter by status"),
     role: Optional[str] = Query(None, description="Filter by role"),
     repo: UserRepository = Depends(get_user_repo),
@@ -117,27 +119,25 @@ async def list_users_by_tenant(
     """
     List all users in a tenant with pagination and optional filters.
     """
-    skip = (page - 1) * page_size
+    skip = (page - 1) * pageSize
     users, total = await repo.get_by_tenant(
         tenant_id=tenant_id,
         skip=skip,
-        limit=page_size,
+        limit=pageSize,
         status=status,
         role=role,
     )
     
-    pages = (total + page_size - 1) // page_size if total > 0 else 0
-    
-    return UserListResponse(
+    return paginated_response(
         items=[_add_computed_fields(u) for u in users],
         total=total,
         page=page,
-        page_size=page_size,
-        pages=pages,
+        page_size=pageSize,
+        message="Users retrieved successfully"
     )
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get("/{user_id}", response_model=ApiResponse)
 async def get_user(
     user_id: UUID,
     repo: UserRepository = Depends(get_user_repo),
@@ -149,10 +149,10 @@ async def get_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    return _add_computed_fields(user)
+    return success_response(data=_add_computed_fields(user), message="User retrieved successfully")
 
 
-@router.get("/email/{email}", response_model=UserResponse)
+@router.get("/email/{email}", response_model=ApiResponse)
 async def get_user_by_email(
     email: str,
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
@@ -165,10 +165,10 @@ async def get_user_by_email(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    return _add_computed_fields(user)
+    return success_response(data=_add_computed_fields(user), message="User retrieved successfully")
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.patch("/{user_id}", response_model=ApiResponse)
 async def update_user(
     user_id: UUID,
     user: UserUpdate,
@@ -185,10 +185,10 @@ async def update_user(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to update user")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="User updated successfully")
 
 
-@router.patch("/{user_id}/admin", response_model=UserResponse)
+@router.patch("/{user_id}/admin", response_model=ApiResponse)
 async def update_user_admin(
     user_id: UUID,
     user: UserUpdateAdmin,
@@ -207,10 +207,10 @@ async def update_user_admin(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to update user")
     
-    return _add_computed_fields(result)
+    return success_response(data=_add_computed_fields(result), message="User updated successfully")
 
 
-@router.post("/{user_id}/change-password", status_code=204)
+@router.post("/{user_id}/change-password", response_model=ApiResponse)
 async def change_password(
     user_id: UUID,
     password_data: UserPasswordChange,
@@ -236,10 +236,10 @@ async def change_password(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to change password")
     
-    return None
+    return success_response(data=None, message="Password changed successfully")
 
 
-@router.post("/{user_id}/verify-email", status_code=204)
+@router.post("/{user_id}/verify-email", response_model=ApiResponse)
 async def verify_email(
     user_id: UUID,
     repo: UserRepository = Depends(get_user_repo),
@@ -257,10 +257,10 @@ async def verify_email(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to verify email")
     
-    return None
+    return success_response(data=None, message="Email verified successfully")
 
 
-@router.delete("/{user_id}", status_code=204)
+@router.delete("/{user_id}", response_model=ApiResponse)
 async def delete_user(
     user_id: UUID,
     repo: UserRepository = Depends(get_user_repo),
@@ -285,4 +285,4 @@ async def delete_user(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete user")
     
-    return None
+    return success_response(data=None, message="User deleted successfully")

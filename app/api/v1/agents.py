@@ -16,6 +16,8 @@ from app.schemas.agent import (
     AgentSummary,
 )
 from app.repositories.agent import AgentRepository
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response
 
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
@@ -31,7 +33,7 @@ def get_agent_repo(supabase: Client = Depends(get_supabase)) -> AgentRepository:
     return AgentRepository(supabase)
 
 
-@router.get("", response_model=AgentListResponse)
+@router.get("", response_model=ApiResponse)
 async def list_agents(
     active_only: bool = True,
     repo: AgentRepository = Depends(get_agent_repo),
@@ -43,13 +45,10 @@ async def list_agents(
     """
     agents = await repo.get_all(active_only=active_only)
     
-    return AgentListResponse(
-        items=agents,
-        total=len(agents)
-    )
+    return success_response(data={"items": agents, "total": len(agents)}, message="Agents retrieved successfully")
 
 
-@router.get("/{agent_id}", response_model=AgentResponse)
+@router.get("/{agent_id}", response_model=ApiResponse)
 async def get_agent(
     agent_id: UUID,
     repo: AgentRepository = Depends(get_agent_repo),
@@ -61,10 +60,10 @@ async def get_agent(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    return agent
+    return success_response(data=agent, message="Agent retrieved successfully")
 
 
-@router.get("/slug/{slug}", response_model=AgentResponse)
+@router.get("/slug/{slug}", response_model=ApiResponse)
 async def get_agent_by_slug(
     slug: str,
     repo: AgentRepository = Depends(get_agent_repo),
@@ -76,10 +75,10 @@ async def get_agent_by_slug(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    return agent
+    return success_response(data=agent, message="Agent retrieved successfully")
 
 
-@router.get("/category/{category}", response_model=List[AgentResponse])
+@router.get("/category/{category}", response_model=ApiResponse)
 async def get_agents_by_category(
     category: str,
     repo: AgentRepository = Depends(get_agent_repo),
@@ -88,4 +87,4 @@ async def get_agents_by_category(
     Get agents by category (marketing, sales, customer_success).
     """
     agents = await repo.get_by_category(category)
-    return agents
+    return success_response(data={"items": agents, "total": len(agents)}, message="Agents retrieved successfully")

@@ -22,6 +22,8 @@ from app.schemas.api_key import (
     ApiKeyResponseWithSecret,
     ApiKeyListResponse
 )
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
 
@@ -76,7 +78,7 @@ def _add_computed_fields(data: dict) -> dict:
     return data
 
 
-@router.post("/tenants/{tenant_id}", response_model=ApiKeyResponseWithSecret)
+@router.post("/tenants/{tenant_id}", response_model=ApiResponse)
 async def create_api_key(
     tenant_id: UUID,
     data: ApiKeyCreate,
@@ -120,15 +122,15 @@ async def create_api_key(
     result = _add_computed_fields(api_key)
     result["key"] = key
     
-    return result
+    return success_response(data=result, message="API key created successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}", response_model=ApiKeyListResponse)
+@router.get("/tenants/{tenant_id}", response_model=ApiResponse)
 async def list_api_keys(
     tenant_id: UUID,
     include_revoked: bool = Query(False, description="Include revoked keys"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     api_key_repo: ApiKeyRepository = Depends(get_api_key_repo)
 ):
@@ -137,19 +139,25 @@ async def list_api_keys(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
+    skip = (page - 1) * pageSize
     items, total = await api_key_repo.get_by_tenant(
         tenant_id, 
         include_revoked=include_revoked,
         skip=skip, 
-        limit=limit
+        limit=pageSize
     )
-    return ApiKeyListResponse(
-        items=[_add_computed_fields(i) for i in items],
-        total=total
+    
+    processed_items = [_add_computed_fields(i) for i in items]
+    return paginated_response(
+        items=processed_items,
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="API keys retrieved successfully"
     )
 
 
-@router.get("/tenants/{tenant_id}/{key_id}", response_model=ApiKeyResponse)
+@router.get("/tenants/{tenant_id}/{key_id}", response_model=ApiResponse)
 async def get_api_key(
     tenant_id: UUID,
     key_id: UUID,
@@ -163,10 +171,11 @@ async def get_api_key(
     if str(api_key.get("tenant_id")) != str(tenant_id):
         raise HTTPException(status_code=403, detail="API key belongs to another tenant")
     
-    return _add_computed_fields(api_key)
+    result = _add_computed_fields(api_key)
+    return success_response(data=result, message="API key retrieved successfully")
 
 
-@router.patch("/tenants/{tenant_id}/{key_id}", response_model=ApiKeyResponse)
+@router.patch("/tenants/{tenant_id}/{key_id}", response_model=ApiResponse)
 async def update_api_key(
     tenant_id: UUID,
     key_id: UUID,
@@ -185,10 +194,11 @@ async def update_api_key(
         raise HTTPException(status_code=400, detail="Cannot update a revoked key")
     
     updated = await api_key_repo.update(key_id, data)
-    return _add_computed_fields(updated)
+    result = _add_computed_fields(updated)
+    return success_response(data=result, message="API key updated successfully")
 
 
-@router.post("/tenants/{tenant_id}/{key_id}/revoke", response_model=ApiKeyResponse)
+@router.post("/tenants/{tenant_id}/{key_id}/revoke", response_model=ApiResponse)
 async def revoke_api_key(
     tenant_id: UUID,
     key_id: UUID,
@@ -209,10 +219,11 @@ async def revoke_api_key(
     
     reason = data.reason if data else None
     revoked = await api_key_repo.revoke(key_id, revoked_by, reason)
-    return _add_computed_fields(revoked)
+    result = _add_computed_fields(revoked)
+    return success_response(data=result, message="API key revoked successfully")
 
 
-@router.delete("/tenants/{tenant_id}/{key_id}")
+@router.delete("/tenants/{tenant_id}/{key_id}", response_model=ApiResponse)
 async def delete_api_key(
     tenant_id: UUID,
     key_id: UUID,
@@ -227,14 +238,14 @@ async def delete_api_key(
         raise HTTPException(status_code=403, detail="API key belongs to another tenant")
     
     await api_key_repo.delete(key_id)
-    return {"message": "API key deleted"}
+    return success_response(data=None, message="API key deleted successfully", status_code=200)
 
 
 # ============================================================================
 # Key Verification (for middleware/authentication)
 # ============================================================================
 
-@router.post("/verify")
+@router.post("/verify", response_model=ApiResponse)
 async def verify_api_key(
     api_key: str,
     api_key_repo: ApiKeyRepository = Depends(get_api_key_repo)
@@ -250,9 +261,10 @@ async def verify_api_key(
     if not key_record:
         raise HTTPException(status_code=401, detail="Invalid API key")
     
-    return {
+    result = {
         "valid": True,
         "tenant_id": key_record["tenant_id"],
         "scopes": key_record.get("scopes", ["read"]),
         "rate_limit": key_record.get("rate_limit", 1000)
     }
+    return success_response(data=result, message="API key verified successfully")
