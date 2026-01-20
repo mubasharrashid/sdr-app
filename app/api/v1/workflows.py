@@ -17,6 +17,8 @@ from app.schemas.workflow import (
     WorkflowSummary,
     WorkflowListResponse
 )
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
 
@@ -59,7 +61,7 @@ def _add_computed_fields(data: dict) -> dict:
     return data
 
 
-@router.post("/tenants/{tenant_id}", response_model=WorkflowResponse)
+@router.post("/tenants/{tenant_id}", response_model=ApiResponse)
 async def create_workflow(
     tenant_id: UUID,
     data: WorkflowCreate,
@@ -86,16 +88,16 @@ async def create_workflow(
     )
     
     workflow = await workflow_repo.create(create_data)
-    return _add_computed_fields(workflow)
+    return success_response(data=_add_computed_fields(workflow), message="Workflow created successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}", response_model=WorkflowListResponse)
+@router.get("/tenants/{tenant_id}", response_model=ApiResponse)
 async def list_workflows(
     tenant_id: UUID,
     status: Optional[str] = Query(None, description="Filter by status"),
     workflow_type: Optional[str] = Query(None, description="Filter by type"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     workflow_repo: WorkflowRepository = Depends(get_workflow_repo)
 ):
@@ -105,20 +107,24 @@ async def list_workflows(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
+    skip = (page - 1) * pageSize
     items, total = await workflow_repo.get_by_tenant(
         tenant_id, 
         status=status, 
         workflow_type=workflow_type,
         skip=skip, 
-        limit=limit
+        limit=pageSize
     )
-    return WorkflowListResponse(
+    return paginated_response(
         items=[_add_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Workflows retrieved successfully"
     )
 
 
-@router.get("/tenants/{tenant_id}/{workflow_id}", response_model=WorkflowResponse)
+@router.get("/tenants/{tenant_id}/{workflow_id}", response_model=ApiResponse)
 async def get_workflow(
     tenant_id: UUID,
     workflow_id: UUID,
@@ -132,10 +138,10 @@ async def get_workflow(
     if str(workflow.get("tenant_id")) != str(tenant_id):
         raise HTTPException(status_code=403, detail="Workflow belongs to another tenant")
     
-    return _add_computed_fields(workflow)
+    return success_response(data=_add_computed_fields(workflow), message="Workflow retrieved successfully")
 
 
-@router.patch("/tenants/{tenant_id}/{workflow_id}", response_model=WorkflowResponse)
+@router.patch("/tenants/{tenant_id}/{workflow_id}", response_model=ApiResponse)
 async def update_workflow(
     tenant_id: UUID,
     workflow_id: UUID,
@@ -158,10 +164,10 @@ async def update_workflow(
             raise HTTPException(status_code=404, detail="Agent not found")
     
     updated = await workflow_repo.update(workflow_id, data)
-    return _add_computed_fields(updated)
+    return success_response(data=_add_computed_fields(updated), message="Workflow updated successfully")
 
 
-@router.post("/tenants/{tenant_id}/{workflow_id}/activate", response_model=WorkflowResponse)
+@router.post("/tenants/{tenant_id}/{workflow_id}/activate", response_model=ApiResponse)
 async def activate_workflow(
     tenant_id: UUID,
     workflow_id: UUID,
@@ -176,10 +182,10 @@ async def activate_workflow(
         raise HTTPException(status_code=403, detail="Workflow belongs to another tenant")
     
     activated = await workflow_repo.activate(workflow_id)
-    return _add_computed_fields(activated)
+    return success_response(data=_add_computed_fields(activated), message="Workflow activated successfully")
 
 
-@router.post("/tenants/{tenant_id}/{workflow_id}/pause", response_model=WorkflowResponse)
+@router.post("/tenants/{tenant_id}/{workflow_id}/pause", response_model=ApiResponse)
 async def pause_workflow(
     tenant_id: UUID,
     workflow_id: UUID,
@@ -194,10 +200,10 @@ async def pause_workflow(
         raise HTTPException(status_code=403, detail="Workflow belongs to another tenant")
     
     paused = await workflow_repo.pause(workflow_id)
-    return _add_computed_fields(paused)
+    return success_response(data=_add_computed_fields(paused), message="Workflow paused successfully")
 
 
-@router.post("/tenants/{tenant_id}/{workflow_id}/archive", response_model=WorkflowResponse)
+@router.post("/tenants/{tenant_id}/{workflow_id}/archive", response_model=ApiResponse)
 async def archive_workflow(
     tenant_id: UUID,
     workflow_id: UUID,
@@ -212,10 +218,10 @@ async def archive_workflow(
         raise HTTPException(status_code=403, detail="Workflow belongs to another tenant")
     
     archived = await workflow_repo.archive(workflow_id)
-    return _add_computed_fields(archived)
+    return success_response(data=_add_computed_fields(archived), message="Workflow archived successfully")
 
 
-@router.delete("/tenants/{tenant_id}/{workflow_id}")
+@router.delete("/tenants/{tenant_id}/{workflow_id}", response_model=ApiResponse)
 async def delete_workflow(
     tenant_id: UUID,
     workflow_id: UUID,
@@ -230,14 +236,14 @@ async def delete_workflow(
         raise HTTPException(status_code=403, detail="Workflow belongs to another tenant")
     
     await workflow_repo.delete(workflow_id)
-    return {"message": "Workflow deleted"}
+    return success_response(data=None, message="Workflow deleted successfully")
 
 
 # ============================================================================
 # Agent Workflows
 # ============================================================================
 
-@router.get("/agents/{agent_id}", response_model=List[WorkflowSummary])
+@router.get("/agents/{agent_id}", response_model=ApiResponse)
 async def list_agent_workflows(
     agent_id: UUID,
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
@@ -251,14 +257,14 @@ async def list_agent_workflows(
         raise HTTPException(status_code=404, detail="Agent not found")
     
     workflows = await workflow_repo.get_by_agent(agent_id, tenant_id)
-    return workflows
+    return success_response(data={"items": workflows, "total": len(workflows)}, message="Workflows retrieved successfully")
 
 
 # ============================================================================
 # Trigger-based Workflows
 # ============================================================================
 
-@router.get("/triggers/{trigger_event}", response_model=List[WorkflowSummary])
+@router.get("/triggers/{trigger_event}", response_model=ApiResponse)
 async def list_workflows_by_trigger(
     trigger_event: str,
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
@@ -266,4 +272,4 @@ async def list_workflows_by_trigger(
 ):
     """List active workflows for a trigger event."""
     workflows = await workflow_repo.get_by_trigger(trigger_event, tenant_id)
-    return workflows
+    return success_response(data={"items": workflows, "total": len(workflows)}, message="Workflows retrieved successfully")

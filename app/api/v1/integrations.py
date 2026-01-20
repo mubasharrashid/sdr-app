@@ -23,6 +23,8 @@ from app.schemas.tenant_integration import (
     TenantIntegrationWithDetails,
     TenantIntegrationListResponse
 )
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
@@ -89,35 +91,41 @@ def _add_connection_computed_fields(data: dict) -> dict:
 # Available Integrations (Master List)
 # ============================================================================
 
-@router.get("/available", response_model=IntegrationListResponse)
+@router.get("/available", response_model=ApiResponse)
 async def list_available_integrations(
     category: Optional[str] = Query(None, description="Filter by category"),
     active_only: bool = Query(True, description="Only show active integrations"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     repo: IntegrationRepository = Depends(get_integration_repo)
 ):
     """List all available integrations."""
     if category:
         items = await repo.get_by_category(category, active_only=active_only)
-        return IntegrationListResponse(items=[_add_integration_computed_fields(i) for i in items], total=len(items))
+        processed_items = [_add_integration_computed_fields(i) for i in items]
+        return success_response(data={"items": processed_items, "total": len(processed_items)}, message="Integrations retrieved successfully")
     
-    items, total = await repo.get_all(active_only=active_only, skip=skip, limit=limit)
-    return IntegrationListResponse(
+    skip = (page - 1) * pageSize
+    items, total = await repo.get_all(active_only=active_only, skip=skip, limit=pageSize)
+    return paginated_response(
         items=[_add_integration_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Integrations retrieved successfully"
     )
 
 
-@router.get("/available/categories", response_model=List[str])
+@router.get("/available/categories", response_model=ApiResponse)
 async def list_integration_categories(
     repo: IntegrationRepository = Depends(get_integration_repo)
 ):
     """List all integration categories."""
-    return await repo.get_categories()
+    categories = await repo.get_categories()
+    return success_response(data={"categories": categories}, message="Categories retrieved successfully")
 
 
-@router.get("/available/{integration_id}", response_model=IntegrationResponse)
+@router.get("/available/{integration_id}", response_model=ApiResponse)
 async def get_available_integration(
     integration_id: UUID,
     repo: IntegrationRepository = Depends(get_integration_repo)
@@ -126,10 +134,10 @@ async def get_available_integration(
     integration = await repo.get_by_id(integration_id)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
-    return _add_integration_computed_fields(integration)
+    return success_response(data=_add_integration_computed_fields(integration), message="Integration retrieved successfully")
 
 
-@router.get("/available/slug/{slug}", response_model=IntegrationResponse)
+@router.get("/available/slug/{slug}", response_model=ApiResponse)
 async def get_integration_by_slug(
     slug: str,
     repo: IntegrationRepository = Depends(get_integration_repo)
@@ -138,14 +146,14 @@ async def get_integration_by_slug(
     integration = await repo.get_by_slug(slug)
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
-    return _add_integration_computed_fields(integration)
+    return success_response(data=_add_integration_computed_fields(integration), message="Integration retrieved successfully")
 
 
 # ============================================================================
 # Tenant Integrations (Connections)
 # ============================================================================
 
-@router.post("/tenants/{tenant_id}/connect", response_model=TenantIntegrationResponse)
+@router.post("/tenants/{tenant_id}/connect", response_model=ApiResponse)
 async def connect_integration(
     tenant_id: UUID,
     data: TenantIntegrationConnect,
@@ -189,15 +197,15 @@ async def connect_integration(
         create_data.connected_at = datetime.now(timezone.utc)
     
     connection = await connection_repo.create(create_data)
-    return _add_connection_computed_fields(connection)
+    return success_response(data=_add_connection_computed_fields(connection), message="Integration connected successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}", response_model=TenantIntegrationListResponse)
+@router.get("/tenants/{tenant_id}", response_model=ApiResponse)
 async def list_tenant_integrations(
     tenant_id: UUID,
     status: Optional[str] = Query(None, description="Filter by status"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     connection_repo: TenantIntegrationRepository = Depends(get_tenant_integration_repo)
 ):
@@ -207,16 +215,20 @@ async def list_tenant_integrations(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
+    skip = (page - 1) * pageSize
     items, total = await connection_repo.get_by_tenant(
-        tenant_id, status=status, skip=skip, limit=limit
+        tenant_id, status=status, skip=skip, limit=pageSize
     )
-    return TenantIntegrationListResponse(
+    return paginated_response(
         items=[_add_connection_computed_fields(i) for i in items],
-        total=total
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Integrations retrieved successfully"
     )
 
 
-@router.get("/tenants/{tenant_id}/{connection_id}", response_model=TenantIntegrationWithDetails)
+@router.get("/tenants/{tenant_id}/{connection_id}", response_model=ApiResponse)
 async def get_tenant_integration(
     tenant_id: UUID,
     connection_id: UUID,
@@ -236,10 +248,10 @@ async def get_tenant_integration(
     
     result = _add_connection_computed_fields(connection)
     result["integration"] = _add_integration_computed_fields(integration) if integration else None
-    return result
+    return success_response(data=result, message="Integration connection retrieved successfully")
 
 
-@router.patch("/tenants/{tenant_id}/{connection_id}", response_model=TenantIntegrationResponse)
+@router.patch("/tenants/{tenant_id}/{connection_id}", response_model=ApiResponse)
 async def update_tenant_integration(
     tenant_id: UUID,
     connection_id: UUID,
@@ -260,10 +272,10 @@ async def update_tenant_integration(
     )
     
     updated = await connection_repo.update(connection_id, update_data)
-    return _add_connection_computed_fields(updated)
+    return success_response(data=_add_connection_computed_fields(updated), message="Integration connection updated successfully")
 
 
-@router.post("/tenants/{tenant_id}/{connection_id}/disconnect", response_model=TenantIntegrationResponse)
+@router.post("/tenants/{tenant_id}/{connection_id}/disconnect", response_model=ApiResponse)
 async def disconnect_integration(
     tenant_id: UUID,
     connection_id: UUID,
@@ -278,10 +290,10 @@ async def disconnect_integration(
         raise HTTPException(status_code=403, detail="Connection belongs to another tenant")
     
     disconnected = await connection_repo.disconnect(connection_id)
-    return _add_connection_computed_fields(disconnected)
+    return success_response(data=_add_connection_computed_fields(disconnected), message="Integration disconnected successfully")
 
 
-@router.delete("/tenants/{tenant_id}/{connection_id}")
+@router.delete("/tenants/{tenant_id}/{connection_id}", response_model=ApiResponse)
 async def delete_tenant_integration(
     tenant_id: UUID,
     connection_id: UUID,
@@ -296,4 +308,4 @@ async def delete_tenant_integration(
         raise HTTPException(status_code=403, detail="Connection belongs to another tenant")
     
     await connection_repo.delete(connection_id)
-    return {"message": "Integration connection deleted"}
+    return success_response(data=None, message="Integration connection deleted successfully")

@@ -28,6 +28,8 @@ from app.schemas.knowledge_document import (
 from app.repositories.knowledge_base import KnowledgeBaseRepository
 from app.repositories.knowledge_document import KnowledgeDocumentRepository
 from app.repositories.tenant import TenantRepository
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 
 router = APIRouter(prefix="/knowledge", tags=["Knowledge Base"])
@@ -71,7 +73,7 @@ def _add_doc_computed_fields(data: dict) -> dict:
 # KNOWLEDGE BASE ENDPOINTS
 # ============================================================================
 
-@router.post("/bases", response_model=KnowledgeBaseResponse, status_code=201)
+@router.post("/bases", response_model=ApiResponse, status_code=201)
 async def create_knowledge_base(
     kb: KnowledgeBaseCreate,
     repo: KnowledgeBaseRepository = Depends(get_kb_repo),
@@ -106,14 +108,14 @@ async def create_knowledge_base(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to create knowledge base")
     
-    return _add_kb_computed_fields(result)
+    return success_response(data=_add_kb_computed_fields(result), message="Knowledge base created successfully", status_code=201)
 
 
-@router.get("/bases/tenant/{tenant_id}", response_model=KnowledgeBaseListResponse)
+@router.get("/bases/tenant/{tenant_id}", response_model=ApiResponse)
 async def list_knowledge_bases(
     tenant_id: UUID,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pageSize: int = Query(10, ge=1, le=100),
     status: Optional[str] = Query(None),
     kb_type: Optional[str] = Query(None),
     agent_id: Optional[UUID] = Query(None),
@@ -122,28 +124,26 @@ async def list_knowledge_bases(
     """
     List knowledge bases for a tenant.
     """
-    skip = (page - 1) * page_size
+    skip = (page - 1) * pageSize
     kbs, total = await repo.get_by_tenant(
         tenant_id=tenant_id,
         skip=skip,
-        limit=page_size,
+        limit=pageSize,
         status=status,
         kb_type=kb_type,
         agent_id=agent_id,
     )
     
-    pages = (total + page_size - 1) // page_size if total > 0 else 0
-    
-    return KnowledgeBaseListResponse(
+    return paginated_response(
         items=[_add_kb_computed_fields(kb) for kb in kbs],
         total=total,
         page=page,
-        page_size=page_size,
-        pages=pages,
+        page_size=pageSize,
+        message="Knowledge bases retrieved successfully"
     )
 
 
-@router.get("/bases/{kb_id}", response_model=KnowledgeBaseResponse)
+@router.get("/bases/{kb_id}", response_model=ApiResponse)
 async def get_knowledge_base(
     kb_id: UUID,
     repo: KnowledgeBaseRepository = Depends(get_kb_repo),
@@ -155,10 +155,10 @@ async def get_knowledge_base(
     if not kb:
         raise HTTPException(status_code=404, detail="Knowledge base not found")
     
-    return _add_kb_computed_fields(kb)
+    return success_response(data=_add_kb_computed_fields(kb), message="Knowledge base retrieved successfully")
 
 
-@router.patch("/bases/{kb_id}", response_model=KnowledgeBaseResponse)
+@router.patch("/bases/{kb_id}", response_model=ApiResponse)
 async def update_knowledge_base(
     kb_id: UUID,
     update: KnowledgeBaseUpdate,
@@ -175,10 +175,10 @@ async def update_knowledge_base(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to update knowledge base")
     
-    return _add_kb_computed_fields(result)
+    return success_response(data=_add_kb_computed_fields(result), message="Knowledge base updated successfully")
 
 
-@router.delete("/bases/{kb_id}", status_code=204)
+@router.delete("/bases/{kb_id}", response_model=ApiResponse)
 async def delete_knowledge_base(
     kb_id: UUID,
     repo: KnowledgeBaseRepository = Depends(get_kb_repo),
@@ -199,14 +199,14 @@ async def delete_knowledge_base(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete knowledge base")
     
-    return None
+    return success_response(data=None, message="Knowledge base deleted successfully")
 
 
 # ============================================================================
 # KNOWLEDGE DOCUMENT ENDPOINTS
 # ============================================================================
 
-@router.post("/documents", response_model=KnowledgeDocumentResponse, status_code=201)
+@router.post("/documents", response_model=ApiResponse, status_code=201)
 async def create_document(
     doc: KnowledgeDocumentCreate,
     repo: KnowledgeDocumentRepository = Depends(get_doc_repo),
@@ -255,40 +255,38 @@ async def create_document(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to create document")
     
-    return _add_doc_computed_fields(result)
+    return success_response(data=_add_doc_computed_fields(result), message="Document created successfully", status_code=201)
 
 
-@router.get("/documents/kb/{kb_id}", response_model=KnowledgeDocumentListResponse)
+@router.get("/documents/kb/{kb_id}", response_model=ApiResponse)
 async def list_documents(
     kb_id: UUID,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pageSize: int = Query(10, ge=1, le=100),
     status: Optional[str] = Query(None),
     repo: KnowledgeDocumentRepository = Depends(get_doc_repo),
 ):
     """
     List documents in a knowledge base.
     """
-    skip = (page - 1) * page_size
+    skip = (page - 1) * pageSize
     docs, total = await repo.get_by_knowledge_base(
         kb_id=kb_id,
         skip=skip,
-        limit=page_size,
+        limit=pageSize,
         status=status,
     )
     
-    pages = (total + page_size - 1) // page_size if total > 0 else 0
-    
-    return KnowledgeDocumentListResponse(
+    return paginated_response(
         items=[_add_doc_computed_fields(d) for d in docs],
         total=total,
         page=page,
-        page_size=page_size,
-        pages=pages,
+        page_size=pageSize,
+        message="Documents retrieved successfully"
     )
 
 
-@router.get("/documents/{doc_id}", response_model=KnowledgeDocumentResponse)
+@router.get("/documents/{doc_id}", response_model=ApiResponse)
 async def get_document(
     doc_id: UUID,
     repo: KnowledgeDocumentRepository = Depends(get_doc_repo),
@@ -300,10 +298,10 @@ async def get_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    return _add_doc_computed_fields(doc)
+    return success_response(data=_add_doc_computed_fields(doc), message="Document retrieved successfully")
 
 
-@router.patch("/documents/{doc_id}", response_model=KnowledgeDocumentResponse)
+@router.patch("/documents/{doc_id}", response_model=ApiResponse)
 async def update_document(
     doc_id: UUID,
     update: KnowledgeDocumentUpdate,
@@ -320,10 +318,10 @@ async def update_document(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to update document")
     
-    return _add_doc_computed_fields(result)
+    return success_response(data=_add_doc_computed_fields(result), message="Document updated successfully")
 
 
-@router.post("/documents/{doc_id}/process", response_model=KnowledgeDocumentResponse)
+@router.post("/documents/{doc_id}/process", response_model=ApiResponse)
 async def process_document(
     doc_id: UUID,
     repo: KnowledgeDocumentRepository = Depends(get_doc_repo),
@@ -346,10 +344,10 @@ async def process_document(
     # In production: queue background job here
     # For now, just return with processing status
     
-    return _add_doc_computed_fields(result)
+    return success_response(data=_add_doc_computed_fields(result), message="Document processing started")
 
 
-@router.delete("/documents/{doc_id}", status_code=204)
+@router.delete("/documents/{doc_id}", response_model=ApiResponse)
 async def delete_document(
     doc_id: UUID,
     repo: KnowledgeDocumentRepository = Depends(get_doc_repo),
@@ -367,4 +365,4 @@ async def delete_document(
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete document")
     
-    return None
+    return success_response(data=None, message="Document deleted successfully")

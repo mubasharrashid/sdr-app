@@ -13,6 +13,8 @@ from app.schemas.icp import (
     ICPTrackingCreate, ICPTrackingCreateInternal, ICPTrackingUpdate, 
     ICPTrackingProgress, ICPTrackingResponse, ICPTrackingListResponse
 )
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/icps", tags=["icps"])
 
@@ -78,7 +80,7 @@ def _add_tracking_computed_fields(tracking: dict) -> dict:
 # ICP Endpoints
 # ============================================================================
 
-@router.post("", response_model=ICPResponse, status_code=201)
+@router.post("", response_model=ApiResponse, status_code=201)
 async def create_icp(
     tenant_id: UUID,
     data: ICPCreate,
@@ -99,31 +101,33 @@ async def create_icp(
     internal_data = ICPCreateInternal(tenant_id=tenant_id, **data.model_dump())
     icp = await icp_repo.create(internal_data)
     
-    return _add_computed_fields(icp)
+    return success_response(data=_add_computed_fields(icp), message="ICP created successfully", status_code=201)
 
 
-@router.get("", response_model=ICPListResponse)
+@router.get("", response_model=ApiResponse)
 async def list_icps(
     tenant_id: UUID,
     status: Optional[str] = Query(None, description="Filter by status"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    pageSize: int = Query(10, ge=1, le=100),
     icp_repo: ICPRepository = Depends(get_icp_repo)
 ):
     """List ICPs for a tenant."""
-    skip = (page - 1) * page_size
-    icps = await icp_repo.get_by_tenant(tenant_id, status=status, skip=skip, limit=page_size)
+    skip = (page - 1) * pageSize
+    icps = await icp_repo.get_by_tenant(tenant_id, status=status, skip=skip, limit=pageSize)
     total = await icp_repo.count_by_tenant(tenant_id)
     
-    return ICPListResponse(
-        icps=[ICPSummary(**icp) for icp in icps],
+    processed_icps = [ICPSummary(**icp) for icp in icps]
+    return paginated_response(
+        items=[icp.model_dump() if hasattr(icp, 'model_dump') else icp for icp in processed_icps],
         total=total,
         page=page,
-        page_size=page_size
+        page_size=pageSize,
+        message="ICPs retrieved successfully"
     )
 
 
-@router.get("/{icp_id}", response_model=ICPResponse)
+@router.get("/{icp_id}", response_model=ApiResponse)
 async def get_icp(
     icp_id: UUID,
     icp_repo: ICPRepository = Depends(get_icp_repo)
@@ -133,10 +137,10 @@ async def get_icp(
     if not icp:
         raise HTTPException(status_code=404, detail="ICP not found")
     
-    return _add_computed_fields(icp)
+    return success_response(data=_add_computed_fields(icp), message="ICP retrieved successfully")
 
 
-@router.patch("/{icp_id}", response_model=ICPResponse)
+@router.patch("/{icp_id}", response_model=ApiResponse)
 async def update_icp(
     icp_id: UUID,
     data: ICPUpdate,
@@ -148,10 +152,10 @@ async def update_icp(
         raise HTTPException(status_code=404, detail="ICP not found")
     
     updated = await icp_repo.update(icp_id, data)
-    return _add_computed_fields(updated)
+    return success_response(data=_add_computed_fields(updated), message="ICP updated successfully")
 
 
-@router.delete("/{icp_id}", status_code=204)
+@router.delete("/{icp_id}", response_model=ApiResponse)
 async def delete_icp(
     icp_id: UUID,
     icp_repo: ICPRepository = Depends(get_icp_repo)
@@ -162,9 +166,10 @@ async def delete_icp(
         raise HTTPException(status_code=404, detail="ICP not found")
     
     await icp_repo.delete(icp_id)
+    return success_response(data=None, message="ICP deleted successfully")
 
 
-@router.post("/{icp_id}/activate", response_model=ICPResponse)
+@router.post("/{icp_id}/activate", response_model=ApiResponse)
 async def activate_icp(
     icp_id: UUID,
     icp_repo: ICPRepository = Depends(get_icp_repo)
@@ -175,10 +180,10 @@ async def activate_icp(
         raise HTTPException(status_code=404, detail="ICP not found")
     
     updated = await icp_repo.activate(icp_id)
-    return _add_computed_fields(updated)
+    return success_response(data=_add_computed_fields(updated), message="ICP activated successfully")
 
 
-@router.post("/{icp_id}/pause", response_model=ICPResponse)
+@router.post("/{icp_id}/pause", response_model=ApiResponse)
 async def pause_icp(
     icp_id: UUID,
     icp_repo: ICPRepository = Depends(get_icp_repo)
@@ -189,10 +194,10 @@ async def pause_icp(
         raise HTTPException(status_code=404, detail="ICP not found")
     
     updated = await icp_repo.pause(icp_id)
-    return _add_computed_fields(updated)
+    return success_response(data=_add_computed_fields(updated), message="ICP paused successfully")
 
 
-@router.post("/{icp_id}/archive", response_model=ICPResponse)
+@router.post("/{icp_id}/archive", response_model=ApiResponse)
 async def archive_icp(
     icp_id: UUID,
     icp_repo: ICPRepository = Depends(get_icp_repo)
@@ -203,14 +208,14 @@ async def archive_icp(
         raise HTTPException(status_code=404, detail="ICP not found")
     
     updated = await icp_repo.archive(icp_id)
-    return _add_computed_fields(updated)
+    return success_response(data=_add_computed_fields(updated), message="ICP archived successfully")
 
 
 # ============================================================================
 # ICP Tracking Endpoints
 # ============================================================================
 
-@router.get("/{icp_id}/tracking", response_model=ICPTrackingResponse)
+@router.get("/{icp_id}/tracking", response_model=ApiResponse)
 async def get_icp_tracking(
     icp_id: UUID,
     tracking_repo: ICPTrackingRepository = Depends(get_tracking_repo)
@@ -220,10 +225,10 @@ async def get_icp_tracking(
     if not tracking:
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
-    return _add_tracking_computed_fields(tracking)
+    return success_response(data=_add_tracking_computed_fields(tracking), message="Tracking record retrieved successfully")
 
 
-@router.post("/{icp_id}/tracking", response_model=ICPTrackingResponse, status_code=201)
+@router.post("/{icp_id}/tracking", response_model=ApiResponse, status_code=201)
 async def create_icp_tracking(
     icp_id: UUID,
     data: ICPTrackingCreate,
@@ -249,10 +254,10 @@ async def create_icp_tracking(
     )
     tracking = await tracking_repo.create(internal_data)
     
-    return _add_tracking_computed_fields(tracking)
+    return success_response(data=_add_tracking_computed_fields(tracking), message="Tracking record created successfully", status_code=201)
 
 
-@router.patch("/{icp_id}/tracking", response_model=ICPTrackingResponse)
+@router.patch("/{icp_id}/tracking", response_model=ApiResponse)
 async def update_icp_tracking(
     icp_id: UUID,
     data: ICPTrackingUpdate,
@@ -264,10 +269,10 @@ async def update_icp_tracking(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     updated = await tracking_repo.update(tracking["id"], data)
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking record updated successfully")
 
 
-@router.post("/{icp_id}/tracking/progress", response_model=ICPTrackingResponse)
+@router.post("/{icp_id}/tracking/progress", response_model=ApiResponse)
 async def update_tracking_progress(
     icp_id: UUID,
     progress: ICPTrackingProgress,
@@ -285,10 +290,10 @@ async def update_tracking_progress(
     # Also update ICP leads_fetched_total
     await icp_repo.increment_leads_fetched(icp_id, progress.leads_fetched)
     
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking progress updated successfully")
 
 
-@router.post("/{icp_id}/tracking/pause", response_model=ICPTrackingResponse)
+@router.post("/{icp_id}/tracking/pause", response_model=ApiResponse)
 async def pause_tracking(
     icp_id: UUID,
     tracking_repo: ICPTrackingRepository = Depends(get_tracking_repo)
@@ -299,10 +304,10 @@ async def pause_tracking(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     updated = await tracking_repo.pause(tracking["id"])
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking paused successfully")
 
 
-@router.post("/{icp_id}/tracking/resume", response_model=ICPTrackingResponse)
+@router.post("/{icp_id}/tracking/resume", response_model=ApiResponse)
 async def resume_tracking(
     icp_id: UUID,
     tracking_repo: ICPTrackingRepository = Depends(get_tracking_repo)
@@ -313,7 +318,7 @@ async def resume_tracking(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     updated = await tracking_repo.resume(tracking["id"])
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking resumed successfully")
 
 
 # ============================================================================
@@ -323,7 +328,7 @@ async def resume_tracking(
 tracking_router = APIRouter(prefix="/icp-tracking", tags=["icp-tracking"])
 
 
-@tracking_router.get("", response_model=ICPTrackingListResponse)
+@tracking_router.get("", response_model=ApiResponse)
 async def list_tracking_records(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -335,13 +340,11 @@ async def list_tracking_records(
     else:
         records = await tracking_repo.get_active() if status == "active" else []
     
-    return ICPTrackingListResponse(
-        tracking_records=[_add_tracking_computed_fields(r) for r in records],
-        total=len(records)
-    )
+    processed_records = [_add_tracking_computed_fields(r) for r in records]
+    return success_response(data={"items": processed_records, "total": len(processed_records)}, message="Tracking records retrieved successfully")
 
 
-@tracking_router.post("", response_model=ICPTrackingResponse, status_code=201)
+@tracking_router.post("", response_model=ApiResponse, status_code=201)
 async def create_tracking_record(
     data: ICPTrackingCreate,
     tenant_id: Optional[UUID] = Query(None, description="Tenant ID"),
@@ -353,10 +356,10 @@ async def create_tracking_record(
         **data.model_dump(exclude_none=True)
     )
     tracking = await tracking_repo.create(internal_data)
-    return _add_tracking_computed_fields(tracking)
+    return success_response(data=_add_tracking_computed_fields(tracking), message="Tracking record created successfully", status_code=201)
 
 
-@tracking_router.get("/by-icp-id/{icp_id}", response_model=ICPTrackingResponse)
+@tracking_router.get("/by-icp-id/{icp_id}", response_model=ApiResponse)
 async def get_tracking_by_icp_id(
     icp_id: str,
     tracking_repo: ICPTrackingRepository = Depends(get_tracking_repo)
@@ -366,10 +369,10 @@ async def get_tracking_by_icp_id(
     if not tracking:
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
-    return _add_tracking_computed_fields(tracking)
+    return success_response(data=_add_tracking_computed_fields(tracking), message="Tracking record retrieved successfully")
 
 
-@tracking_router.get("/{tracking_id}", response_model=ICPTrackingResponse)
+@tracking_router.get("/{tracking_id}", response_model=ApiResponse)
 async def get_tracking_record(
     tracking_id: UUID,
     tracking_repo: ICPTrackingRepository = Depends(get_tracking_repo)
@@ -379,10 +382,10 @@ async def get_tracking_record(
     if not tracking:
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
-    return _add_tracking_computed_fields(tracking)
+    return success_response(data=_add_tracking_computed_fields(tracking), message="Tracking record retrieved successfully")
 
 
-@tracking_router.patch("/{tracking_id}", response_model=ICPTrackingResponse)
+@tracking_router.patch("/{tracking_id}", response_model=ApiResponse)
 async def update_tracking_record(
     tracking_id: UUID,
     data: ICPTrackingUpdate,
@@ -394,10 +397,10 @@ async def update_tracking_record(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     updated = await tracking_repo.update(tracking_id, data)
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking record updated successfully")
 
 
-@tracking_router.post("/{tracking_id}/progress", response_model=ICPTrackingResponse)
+@tracking_router.post("/{tracking_id}/progress", response_model=ApiResponse)
 async def update_tracking_record_progress(
     tracking_id: UUID,
     progress: ICPTrackingProgress,
@@ -409,10 +412,10 @@ async def update_tracking_record_progress(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     updated = await tracking_repo.update_progress(tracking_id, progress)
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking progress updated successfully")
 
 
-@tracking_router.post("/{tracking_id}/error", response_model=ICPTrackingResponse)
+@tracking_router.post("/{tracking_id}/error", response_model=ApiResponse)
 async def set_tracking_error(
     tracking_id: UUID,
     error_message: str,
@@ -424,10 +427,10 @@ async def set_tracking_error(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     updated = await tracking_repo.set_error(tracking_id, error_message)
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking error set successfully")
 
 
-@tracking_router.post("/{tracking_id}/clear-error", response_model=ICPTrackingResponse)
+@tracking_router.post("/{tracking_id}/clear-error", response_model=ApiResponse)
 async def clear_tracking_error(
     tracking_id: UUID,
     tracking_repo: ICPTrackingRepository = Depends(get_tracking_repo)
@@ -438,10 +441,10 @@ async def clear_tracking_error(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     updated = await tracking_repo.clear_error(tracking_id)
-    return _add_tracking_computed_fields(updated)
+    return success_response(data=_add_tracking_computed_fields(updated), message="Tracking error cleared successfully")
 
 
-@tracking_router.delete("/{tracking_id}", status_code=204)
+@tracking_router.delete("/{tracking_id}", response_model=ApiResponse)
 async def delete_tracking_record(
     tracking_id: UUID,
     tracking_repo: ICPTrackingRepository = Depends(get_tracking_repo)
@@ -452,3 +455,4 @@ async def delete_tracking_record(
         raise HTTPException(status_code=404, detail="Tracking record not found")
     
     await tracking_repo.delete(tracking_id)
+    return success_response(data=None, message="Tracking record deleted successfully")
