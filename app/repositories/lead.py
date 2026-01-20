@@ -43,7 +43,10 @@ class LeadRepository:
         has_emails_sent: Optional[bool] = None,
         has_emails_replied: Optional[bool] = None,
         has_meetings_booked: Optional[bool] = None,
-        has_been_contacted: Optional[bool] = None
+        has_been_contacted: Optional[bool] = None,
+        source: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
     ) -> Tuple[List[dict], int]:
         """Get all leads for a tenant with optional activity filters."""
         query = self.client.table(self.table).select("*", count="exact").eq("tenant_id", str(tenant_id))
@@ -51,6 +54,12 @@ class LeadRepository:
             query = query.eq("status", status)
         if campaign_id:
             query = query.eq("campaign_id", str(campaign_id))
+        if source:
+            query = query.eq("source", source)
+        if start_date:
+            query = query.gte("created_at", start_date.isoformat())
+        if end_date:
+            query = query.lte("created_at", end_date.isoformat())
         
         # Activity-based filters
         if has_calls_made is not None:

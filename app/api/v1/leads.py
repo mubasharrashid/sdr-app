@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
 from uuid import UUID
+from datetime import datetime
 
 from supabase import create_client, Client
 
@@ -120,6 +121,9 @@ async def list_leads(
     tenant_id: UUID,
     status: Optional[str] = Query(None, description="Filter by status"),
     campaign_id: Optional[UUID] = Query(None, description="Filter by campaign ID"),
+    source: Optional[str] = Query(None, description="Filter by lead source (e.g., apollo, linkedin, website, import)"),
+    start_date: Optional[datetime] = Query(None, description="Filter leads created on or after this date"),
+    end_date: Optional[datetime] = Query(None, description="Filter leads created on or before this date"),
     has_calls_made: Optional[bool] = Query(None, description="Filter leads that have calls made (true) or no calls (false)"),
     has_emails_sent: Optional[bool] = Query(None, description="Filter leads that have emails sent (true) or no emails (false)"),
     has_emails_replied: Optional[bool] = Query(None, description="Filter leads that have email replies (true) or no replies (false)"),
@@ -131,14 +135,14 @@ async def list_leads(
     lead_repo: LeadRepository = Depends(get_lead_repo)
 ):
     """
-    List leads for a tenant with optional activity-based filters.
+    List leads for a tenant with optional filters.
     
-    Activity filters allow filtering leads based on their interaction history:
-    - has_calls_made: Filter by whether calls have been made to the lead
-    - has_emails_sent: Filter by whether emails have been sent to the lead
-    - has_emails_replied: Filter by whether the lead has replied to emails
-    - has_meetings_booked: Filter by whether meetings have been booked with the lead
-    - has_been_contacted: Filter by whether the lead has been contacted (calls OR emails)
+    Filter options:
+    - status: Filter by lead status
+    - campaign_id: Filter by campaign
+    - source: Filter by lead source (apollo, linkedin, website, import, referral, etc.)
+    - start_date/end_date: Filter by creation date range
+    - Activity filters: Filter by interaction history (calls, emails, replies, meetings)
     """
     tenant = await tenant_repo.get_by_id(tenant_id)
     if not tenant:
@@ -155,7 +159,10 @@ async def list_leads(
         has_emails_sent=has_emails_sent,
         has_emails_replied=has_emails_replied,
         has_meetings_booked=has_meetings_booked,
-        has_been_contacted=has_been_contacted
+        has_been_contacted=has_been_contacted,
+        source=source,
+        start_date=start_date,
+        end_date=end_date
     )
     return paginated_response(
         items=[_add_lead_computed_fields(i) for i in items],
