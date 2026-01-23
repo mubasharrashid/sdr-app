@@ -13,6 +13,8 @@ from app.schemas.dashboard import (
     OverviewStats, EmailStats, LeadPipelineStats, ActivityStats,
     CampaignListStats, TrendStats, AgentPerformanceStats, DashboardResponse
 )
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -36,7 +38,7 @@ def get_tenant_repo(supabase: Client = Depends(get_supabase)) -> TenantRepositor
 # Complete Dashboard
 # ============================================================================
 
-@router.get("", response_model=DashboardResponse)
+@router.get("", response_model=ApiResponse)
 async def get_dashboard(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     start_date: Optional[datetime] = Query(None, description="Start date for metrics"),
@@ -76,14 +78,14 @@ async def get_dashboard(
             trends.append(trend)
         response.trends = trends
     
-    return response
+    return success_response(data=response.model_dump(), message="Dashboard data retrieved successfully")
 
 
 # ============================================================================
 # Overview Stats
 # ============================================================================
 
-@router.get("/overview", response_model=OverviewStats)
+@router.get("/overview", response_model=ApiResponse)
 async def get_overview_stats(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     start_date: Optional[datetime] = Query(None, description="Start date"),
@@ -100,14 +102,15 @@ async def get_overview_stats(
     - Meeting metrics (booked, completed, cancelled)
     - Key rates (open, click, reply, conversion)
     """
-    return await dashboard_repo.get_overview_stats(tenant_id, start_date, end_date)
+    stats = await dashboard_repo.get_overview_stats(tenant_id, start_date, end_date)
+    return success_response(data=stats, message="Overview statistics retrieved successfully")
 
 
 # ============================================================================
 # Email Stats
 # ============================================================================
 
-@router.get("/emails", response_model=EmailStats)
+@router.get("/emails", response_model=ApiResponse)
 async def get_email_stats(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     start_date: Optional[datetime] = Query(None, description="Start date"),
@@ -122,14 +125,15 @@ async def get_email_stats(
     - Rates (open, click, reply, bounce)
     - Reply breakdown (positive, negative, out of office)
     """
-    return await dashboard_repo.get_email_stats(tenant_id, start_date, end_date)
+    stats = await dashboard_repo.get_email_stats(tenant_id, start_date, end_date)
+    return success_response(data=stats, message="Email statistics retrieved successfully")
 
 
 # ============================================================================
 # Pipeline Stats
 # ============================================================================
 
-@router.get("/pipeline", response_model=LeadPipelineStats)
+@router.get("/pipeline", response_model=ApiResponse)
 async def get_pipeline_stats(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     dashboard_repo: DashboardRepository = Depends(get_dashboard_repo)
@@ -143,14 +147,15 @@ async def get_pipeline_stats(
     - Conversion rates between stages
     - Visual funnel data
     """
-    return await dashboard_repo.get_pipeline_stats(tenant_id)
+    stats = await dashboard_repo.get_pipeline_stats(tenant_id)
+    return success_response(data=stats, message="Pipeline statistics retrieved successfully")
 
 
 # ============================================================================
 # Activity Stats
 # ============================================================================
 
-@router.get("/activity", response_model=ActivityStats)
+@router.get("/activity", response_model=ApiResponse)
 async def get_activity_stats(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
@@ -164,14 +169,15 @@ async def get_activity_stats(
     - Activity counts by channel
     - Daily breakdown for the specified period
     """
-    return await dashboard_repo.get_activity_stats(tenant_id, days)
+    stats = await dashboard_repo.get_activity_stats(tenant_id, days)
+    return success_response(data=stats, message="Activity statistics retrieved successfully")
 
 
 # ============================================================================
 # Campaign Stats
 # ============================================================================
 
-@router.get("/campaigns", response_model=CampaignListStats)
+@router.get("/campaigns", response_model=ApiResponse)
 async def get_campaign_stats(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     campaign_id: Optional[UUID] = Query(None, description="Specific campaign"),
@@ -187,10 +193,11 @@ async def get_campaign_stats(
     - Meeting metrics (booked)
     - Rates (open, reply, conversion)
     """
-    return await dashboard_repo.get_campaign_stats(tenant_id, campaign_id)
+    stats = await dashboard_repo.get_campaign_stats(tenant_id, campaign_id)
+    return success_response(data=stats, message="Campaign statistics retrieved successfully")
 
 
-@router.get("/campaigns/{campaign_id}/sequences")
+@router.get("/campaigns/{campaign_id}/sequences", response_model=ApiResponse)
 async def get_sequence_stats(
     campaign_id: UUID,
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
@@ -201,14 +208,15 @@ async def get_sequence_stats(
     
     Returns performance metrics for each step in the sequence.
     """
-    return await dashboard_repo.get_sequence_performance(campaign_id, tenant_id)
+    stats = await dashboard_repo.get_sequence_performance(campaign_id, tenant_id)
+    return success_response(data=stats, message="Sequence statistics retrieved successfully")
 
 
 # ============================================================================
 # Trend Stats
 # ============================================================================
 
-@router.get("/trends/{metric}", response_model=TrendStats)
+@router.get("/trends/{metric}", response_model=ApiResponse)
 async def get_trend_stats(
     metric: str,
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
@@ -235,14 +243,15 @@ async def get_trend_stats(
             detail=f"Invalid metric. Must be one of: {', '.join(valid_metrics)}"
         )
     
-    return await dashboard_repo.get_trend_stats(metric, tenant_id, days)
+    stats = await dashboard_repo.get_trend_stats(metric, tenant_id, days)
+    return success_response(data=stats, message="Trend statistics retrieved successfully")
 
 
 # ============================================================================
 # Agent Performance
 # ============================================================================
 
-@router.get("/agents", response_model=List[AgentPerformanceStats])
+@router.get("/agents", response_model=ApiResponse)
 async def get_agent_performance(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     agent_id: Optional[UUID] = Query(None, description="Specific agent"),
@@ -258,14 +267,15 @@ async def get_agent_performance(
     - Success rate
     - Task breakdown by type
     """
-    return await dashboard_repo.get_agent_performance(tenant_id, agent_id)
+    stats = await dashboard_repo.get_agent_performance(tenant_id, agent_id)
+    return success_response(data={"items": stats, "total": len(stats)}, message="Agent performance statistics retrieved successfully")
 
 
 # ============================================================================
 # Quick Stats (for widgets/cards)
 # ============================================================================
 
-@router.get("/quick-stats")
+@router.get("/quick-stats", response_model=ApiResponse)
 async def get_quick_stats(
     tenant_id: Optional[UUID] = Query(None, description="Filter by tenant"),
     dashboard_repo: DashboardRepository = Depends(get_dashboard_repo)
@@ -277,7 +287,7 @@ async def get_quick_stats(
     """
     overview = await dashboard_repo.get_overview_stats(tenant_id)
     
-    return {
+    stats = {
         "leads": {
             "total": overview.total_leads,
             "new": overview.new_leads,
@@ -302,13 +312,14 @@ async def get_quick_stats(
             "show_rate": overview.meeting_show_rate
         }
     }
+    return success_response(data=stats, message="Quick statistics retrieved successfully")
 
 
 # ============================================================================
 # Tenant-Specific Dashboard
 # ============================================================================
 
-@router.get("/tenants/{tenant_id}", response_model=DashboardResponse)
+@router.get("/tenants/{tenant_id}", response_model=ApiResponse)
 async def get_tenant_dashboard(
     tenant_id: UUID,
     start_date: Optional[datetime] = Query(None, description="Start date"),
@@ -330,7 +341,7 @@ async def get_tenant_dashboard(
     activity = await dashboard_repo.get_activity_stats(tenant_id)
     campaigns = await dashboard_repo.get_campaign_stats(tenant_id)
     
-    return DashboardResponse(
+    response = DashboardResponse(
         overview=overview,
         email_stats=email_stats,
         pipeline=pipeline,
@@ -340,3 +351,4 @@ async def get_tenant_dashboard(
         period_start=start_date,
         period_end=end_date
     )
+    return success_response(data=response.model_dump(), message="Dashboard data retrieved successfully")

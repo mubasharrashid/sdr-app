@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.router import setup_response_handlers
 from app.db.session import init_db, close_db
 
 
@@ -57,6 +58,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Setup standardized response handlers (for errors)
+setup_response_handlers(app)
+
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
@@ -95,6 +99,7 @@ from app.api.v1.leads import router as leads_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.icps import router as icps_router
 from app.api.v1.icps import tracking_router as icp_tracking_router
+from app.api.v1.email_templates import router as email_templates_router
 
 app.include_router(tenants_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
@@ -111,3 +116,4 @@ app.include_router(leads_router, prefix=settings.API_V1_PREFIX)
 app.include_router(dashboard_router, prefix=settings.API_V1_PREFIX)
 app.include_router(icps_router, prefix=settings.API_V1_PREFIX)
 app.include_router(icp_tracking_router, prefix=settings.API_V1_PREFIX)
+app.include_router(email_templates_router, prefix=settings.API_V1_PREFIX)

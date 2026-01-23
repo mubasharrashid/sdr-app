@@ -14,6 +14,7 @@ from app.api.v1.leads import router as leads_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.icps import router as icps_router
 from app.api.v1.icps import tracking_router as icp_tracking_router
+from app.api.v1.email_templates import router as email_templates_router
 
 __all__ = [
     "tenants_router", 
@@ -31,4 +32,5 @@ __all__ = [
     "dashboard_router",
     "icps_router",
     "icp_tracking_router",
+    "email_templates_router",
 ]

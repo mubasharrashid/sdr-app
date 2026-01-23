@@ -38,14 +38,62 @@ class LeadRepository:
     
     async def get_by_tenant(
         self, tenant_id: UUID, status: Optional[str] = None,
-        campaign_id: Optional[UUID] = None, skip: int = 0, limit: int = 50
+        campaign_id: Optional[UUID] = None, skip: int = 0, limit: int = 50,
+        has_calls_made: Optional[bool] = None,
+        has_emails_sent: Optional[bool] = None,
+        has_emails_replied: Optional[bool] = None,
+        has_meetings_booked: Optional[bool] = None,
+        has_been_contacted: Optional[bool] = None,
+        source: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
     ) -> Tuple[List[dict], int]:
-        """Get all leads for a tenant."""
+        """Get all leads for a tenant with optional activity filters."""
         query = self.client.table(self.table).select("*", count="exact").eq("tenant_id", str(tenant_id))
         if status:
             query = query.eq("status", status)
         if campaign_id:
             query = query.eq("campaign_id", str(campaign_id))
+        if source:
+            query = query.eq("source", source)
+        if start_date:
+            query = query.gte("created_at", start_date.isoformat())
+        if end_date:
+            query = query.lte("created_at", end_date.isoformat())
+        
+        # Activity-based filters
+        if has_calls_made is not None:
+            if has_calls_made:
+                query = query.gt("calls_made", 0)
+            else:
+                query = query.eq("calls_made", 0)
+        
+        if has_emails_sent is not None:
+            if has_emails_sent:
+                query = query.gt("emails_sent", 0)
+            else:
+                query = query.eq("emails_sent", 0)
+        
+        if has_emails_replied is not None:
+            if has_emails_replied:
+                query = query.gt("emails_replied", 0)
+            else:
+                query = query.eq("emails_replied", 0)
+        
+        if has_meetings_booked is not None:
+            if has_meetings_booked:
+                query = query.gt("meetings_booked", 0)
+            else:
+                query = query.eq("meetings_booked", 0)
+        
+        if has_been_contacted is not None:
+            if has_been_contacted:
+                # Contacted means either calls_made > 0 OR emails_sent > 0
+                query = query.or_("calls_made.gt.0,emails_sent.gt.0")
+            else:
+                # Not contacted means both calls_made = 0 AND emails_sent = 0
+                query = query.eq("calls_made", 0).eq("emails_sent", 0)
+        
         result = query.order("created_at", desc=True).range(skip, skip + limit - 1).execute()
         return result.data, result.count or 0
     

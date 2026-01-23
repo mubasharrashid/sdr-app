@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
 from uuid import UUID
+from datetime import datetime
 
 from supabase import create_client, Client
 
@@ -27,6 +28,8 @@ from app.schemas.meeting import (
 )
 from app.schemas.lead_ai_conversation import LeadAIConversationResponse, LeadAIConversationListResponse
 from app.schemas.outreach_activity_log import OutreachActivityLogResponse, OutreachActivityLogListResponse
+from app.schemas.response import ApiResponse
+from app.core.response_helpers import success_response, paginated_response
 
 router = APIRouter(prefix="/leads", tags=["leads"])
 
@@ -91,7 +94,7 @@ def _add_meeting_computed_fields(data: dict) -> dict:
 # Lead Endpoints
 # ============================================================================
 
-@router.post("/tenants/{tenant_id}", response_model=LeadResponse)
+@router.post("/tenants/{tenant_id}", response_model=ApiResponse)
 async def create_lead(
     tenant_id: UUID, data: LeadCreate,
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
@@ -110,42 +113,87 @@ async def create_lead(
     
     create_data = LeadCreateInternal(tenant_id=str(tenant_id), **data.model_dump(exclude_none=True))
     lead = await lead_repo.create(create_data)
-    return _add_lead_computed_fields(lead)
+    return success_response(data=_add_lead_computed_fields(lead), message="Lead created successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}", response_model=LeadListResponse)
+@router.get("/tenants/{tenant_id}", response_model=ApiResponse)
 async def list_leads(
     tenant_id: UUID,
-    status: Optional[str] = Query(None),
-    campaign_id: Optional[UUID] = Query(None),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    campaign_id: Optional[UUID] = Query(None, description="Filter by campaign ID"),
+    source: Optional[str] = Query(None, description="Filter by lead source (e.g., apollo, linkedin, website, import)"),
+    start_date: Optional[datetime] = Query(None, description="Filter leads created on or after this date"),
+    end_date: Optional[datetime] = Query(None, description="Filter leads created on or before this date"),
+    has_calls_made: Optional[bool] = Query(None, description="Filter leads that have calls made (true) or no calls (false)"),
+    has_emails_sent: Optional[bool] = Query(None, description="Filter leads that have emails sent (true) or no emails (false)"),
+    has_emails_replied: Optional[bool] = Query(None, description="Filter leads that have email replies (true) or no replies (false)"),
+    has_meetings_booked: Optional[bool] = Query(None, description="Filter leads that have meetings booked (true) or no meetings (false)"),
+    has_been_contacted: Optional[bool] = Query(None, description="Filter leads that have been contacted via calls or emails (true) or not contacted (false)"),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     lead_repo: LeadRepository = Depends(get_lead_repo)
 ):
-    """List leads for a tenant."""
+    """
+    List leads for a tenant with optional filters.
+    
+    Filter options:
+    - status: Filter by lead status
+    - campaign_id: Filter by campaign
+    - source: Filter by lead source (apollo, linkedin, website, import, referral, etc.)
+    - start_date/end_date: Filter by creation date range
+    - Activity filters: Filter by interaction history (calls, emails, replies, meetings)
+    """
     tenant = await tenant_repo.get_by_id(tenant_id)
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    items, total = await lead_repo.get_by_tenant(tenant_id, status, campaign_id, skip, limit)
-    return LeadListResponse(items=[_add_lead_computed_fields(i) for i in items], total=total)
+    skip = (page - 1) * pageSize
+    items, total = await lead_repo.get_by_tenant(
+        tenant_id, 
+        status, 
+        campaign_id, 
+        skip, 
+        pageSize,
+        has_calls_made=has_calls_made,
+        has_emails_sent=has_emails_sent,
+        has_emails_replied=has_emails_replied,
+        has_meetings_booked=has_meetings_booked,
+        has_been_contacted=has_been_contacted,
+        source=source,
+        start_date=start_date,
+        end_date=end_date
+    )
+    return paginated_response(
+        items=[_add_lead_computed_fields(i) for i in items],
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Leads retrieved successfully"
+    )
 
 
-@router.get("/tenants/{tenant_id}/search", response_model=LeadListResponse)
+@router.get("/tenants/{tenant_id}/search", response_model=ApiResponse)
 async def search_leads(
     tenant_id: UUID,
     q: str = Query(..., min_length=1),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Page number"),
+    pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     lead_repo: LeadRepository = Depends(get_lead_repo)
 ):
     """Search leads by name, email, or company."""
-    items, total = await lead_repo.search(tenant_id, q, skip, limit)
-    return LeadListResponse(items=[_add_lead_computed_fields(i) for i in items], total=total)
+    skip = (page - 1) * pageSize
+    items, total = await lead_repo.search(tenant_id, q, skip, pageSize)
+    return paginated_response(
+        items=[_add_lead_computed_fields(i) for i in items],
+        total=total,
+        page=page,
+        page_size=pageSize,
+        message="Leads retrieved successfully"
+    )
 
 
-@router.get("/tenants/{tenant_id}/{lead_id}", response_model=LeadResponse)
+@router.get("/tenants/{tenant_id}/{lead_id}", response_model=ApiResponse)
 async def get_lead(
     tenant_id: UUID, lead_id: UUID,
     lead_repo: LeadRepository = Depends(get_lead_repo)
@@ -156,10 +204,10 @@ async def get_lead(
         raise HTTPException(status_code=404, detail="Lead not found")
     if str(lead.get("tenant_id")) != str(tenant_id):
         raise HTTPException(status_code=403, detail="Lead belongs to another tenant")
-    return _add_lead_computed_fields(lead)
+    return success_response(data=_add_lead_computed_fields(lead), message="Lead retrieved successfully")
 
 
-@router.patch("/tenants/{tenant_id}/{lead_id}", response_model=LeadResponse)
+@router.patch("/tenants/{tenant_id}/{lead_id}", response_model=ApiResponse)
 async def update_lead(
     tenant_id: UUID, lead_id: UUID, data: LeadUpdate,
     lead_repo: LeadRepository = Depends(get_lead_repo)
@@ -172,10 +220,10 @@ async def update_lead(
         raise HTTPException(status_code=403, detail="Lead belongs to another tenant")
     
     updated = await lead_repo.update(lead_id, data)
-    return _add_lead_computed_fields(updated)
+    return success_response(data=_add_lead_computed_fields(updated), message="Lead updated successfully")
 
 
-@router.delete("/tenants/{tenant_id}/{lead_id}")
+@router.delete("/tenants/{tenant_id}/{lead_id}", response_model=ApiResponse)
 async def delete_lead(
     tenant_id: UUID, lead_id: UUID,
     lead_repo: LeadRepository = Depends(get_lead_repo)
@@ -188,14 +236,14 @@ async def delete_lead(
         raise HTTPException(status_code=403, detail="Lead belongs to another tenant")
     
     await lead_repo.delete(lead_id)
-    return {"message": "Lead deleted"}
+    return success_response(data=None, message="Lead deleted successfully")
 
 
 # ============================================================================
 # Call Task Endpoints
 # ============================================================================
 
-@router.post("/tenants/{tenant_id}/{lead_id}/calls", response_model=CallTaskResponse)
+@router.post("/tenants/{tenant_id}/{lead_id}/calls", response_model=ApiResponse)
 async def create_call_task(
     tenant_id: UUID, lead_id: UUID, data: CallTaskCreate,
     lead_repo: LeadRepository = Depends(get_lead_repo),
@@ -213,10 +261,10 @@ async def create_call_task(
         **data.model_dump(exclude={"lead_id"}, exclude_none=True)
     )
     call = await call_repo.create(create_data)
-    return _add_call_computed_fields(call)
+    return success_response(data=_add_call_computed_fields(call), message="Call task created successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}/{lead_id}/calls", response_model=CallTaskListResponse)
+@router.get("/tenants/{tenant_id}/{lead_id}/calls", response_model=ApiResponse)
 async def list_lead_calls(
     tenant_id: UUID, lead_id: UUID,
     lead_repo: LeadRepository = Depends(get_lead_repo),
@@ -228,14 +276,15 @@ async def list_lead_calls(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     calls = await call_repo.get_by_lead(lead_id)
-    return CallTaskListResponse(items=[_add_call_computed_fields(c) for c in calls], total=len(calls))
+    processed_calls = [_add_call_computed_fields(c) for c in calls]
+    return success_response(data={"items": processed_calls, "total": len(processed_calls)}, message="Call tasks retrieved successfully")
 
 
 # ============================================================================
 # Meeting Endpoints
 # ============================================================================
 
-@router.post("/tenants/{tenant_id}/{lead_id}/meetings", response_model=MeetingResponse)
+@router.post("/tenants/{tenant_id}/{lead_id}/meetings", response_model=ApiResponse)
 async def create_meeting(
     tenant_id: UUID, lead_id: UUID, data: MeetingCreate,
     lead_repo: LeadRepository = Depends(get_lead_repo),
@@ -257,10 +306,10 @@ async def create_meeting(
     # Update lead metrics
     await lead_repo.increment_metric(lead_id, "meetings_booked")
     
-    return _add_meeting_computed_fields(meeting)
+    return success_response(data=_add_meeting_computed_fields(meeting), message="Meeting created successfully", status_code=201)
 
 
-@router.get("/tenants/{tenant_id}/{lead_id}/meetings", response_model=MeetingListResponse)
+@router.get("/tenants/{tenant_id}/{lead_id}/meetings", response_model=ApiResponse)
 async def list_lead_meetings(
     tenant_id: UUID, lead_id: UUID,
     lead_repo: LeadRepository = Depends(get_lead_repo),
@@ -272,14 +321,15 @@ async def list_lead_meetings(
         raise HTTPException(status_code=404, detail="Lead not found")
     
     meetings = await meeting_repo.get_by_lead(lead_id)
-    return MeetingListResponse(items=[_add_meeting_computed_fields(m) for m in meetings], total=len(meetings))
+    processed_meetings = [_add_meeting_computed_fields(m) for m in meetings]
+    return success_response(data={"items": processed_meetings, "total": len(processed_meetings)}, message="Meetings retrieved successfully")
 
 
 # ============================================================================
 # Conversation History Endpoints
 # ============================================================================
 
-@router.get("/tenants/{tenant_id}/{lead_id}/conversations", response_model=LeadAIConversationListResponse)
+@router.get("/tenants/{tenant_id}/{lead_id}/conversations", response_model=ApiResponse)
 async def list_lead_conversations(
     tenant_id: UUID, lead_id: UUID,
     channel: Optional[str] = Query(None),
@@ -301,14 +351,14 @@ async def list_lead_conversations(
         item["is_from_lead"] = item.get("role") == "user"
         item["total_tokens"] = (item.get("prompt_tokens") or 0) + (item.get("completion_tokens") or 0)
     
-    return LeadAIConversationListResponse(items=items, total=total)
+    return success_response(data={"items": items, "total": total}, message="Conversations retrieved successfully")
 
 
 # ============================================================================
 # Activity Timeline Endpoints
 # ============================================================================
 
-@router.get("/tenants/{tenant_id}/{lead_id}/activities", response_model=OutreachActivityLogListResponse)
+@router.get("/tenants/{tenant_id}/{lead_id}/activities", response_model=ApiResponse)
 async def list_lead_activities(
     tenant_id: UUID, lead_id: UUID,
     activity_type: Optional[str] = Query(None),
@@ -331,4 +381,4 @@ async def list_lead_activities(
         positive_types = ["email_replied", "email_clicked", "call_connected", "meeting_booked", "linkedin_reply"]
         item["is_positive_engagement"] = item.get("activity_type") in positive_types
     
-    return OutreachActivityLogListResponse(items=items, total=total)
+    return success_response(data={"items": items, "total": total}, message="Activities retrieved successfully")
