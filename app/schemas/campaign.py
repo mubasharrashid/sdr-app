@@ -11,7 +11,7 @@ class CampaignBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     campaign_type: str = Field(..., pattern="^(email|call|linkedin|multi-channel)$")
-    channel: Optional[str] = Field(None, pattern="^(email|phone|linkedin|sms)$")
+    channel: Optional[str] = None #Field(None, pattern="^(email|phone|linkedin|sms)$")
     timezone: str = Field(default="UTC", max_length=50)
     daily_limit: int = Field(default=100, ge=1, le=10000)
     hourly_limit: int = Field(default=20, ge=1, le=1000)
