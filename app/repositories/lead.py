@@ -162,3 +162,33 @@ class LeadRepository:
         result = self.client.table(self.table).select("id", count="exact")\
             .eq("tenant_id", str(tenant_id)).eq("status", status).execute()
         return result.count or 0
+
+    async def get_stats(self, tenant_id: UUID) -> dict:
+        """Get aggregate statistics for leads."""
+        stats = {
+            "total_leads": 0,
+            "new_leads": 0,
+            "engaged_leads": 0,
+            "qualified_leads": 0,
+            "meetings_scheduled": 0
+        }
+        
+        # Fetching all leads for the tenant      
+        # 1. Total Leads
+        stats["total_leads"] = await self.count_by_tenant(tenant_id)
+        
+        # 2. New Leads
+        stats["new_leads"] = await self.count_by_status(tenant_id, "new")
+        
+        # 3. Engaged Leads
+        stats["engaged_leads"] = await self.count_by_status(tenant_id, "engaged")
+        
+        # 4. Qualified Leads
+        stats["qualified_leads"] = await self.count_by_status(tenant_id, "qualified")
+        
+        # 5. Meetings Scheduled (meetings_booked > 0)
+        result = self.client.table(self.table).select("id", count="exact")\
+            .eq("tenant_id", str(tenant_id)).gt("meetings_booked", 0).execute()
+        stats["meetings_scheduled"] = result.count or 0
+        
+        return stats

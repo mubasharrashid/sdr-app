@@ -15,7 +15,7 @@ from app.repositories.lead_ai_conversation import LeadAIConversationRepository
 from app.repositories.outreach_activity_log import OutreachActivityLogRepository
 from app.repositories.tenant import TenantRepository
 from app.schemas.lead import (
-    LeadCreate, LeadCreateInternal, LeadUpdate, LeadResponse, LeadListResponse
+    LeadCreate, LeadCreateInternal, LeadUpdate, LeadResponse, LeadListResponse, LeadStats
 )
 from app.schemas.call_task import (
     CallTaskCreate, CallTaskCreateInternal, CallTaskUpdate, CallTaskComplete,
@@ -114,6 +114,21 @@ async def create_lead(
     create_data = LeadCreateInternal(tenant_id=str(tenant_id), **data.model_dump(exclude_none=True))
     lead = await lead_repo.create(create_data)
     return success_response(data=_add_lead_computed_fields(lead), message="Lead created successfully", status_code=201)
+
+
+@router.get("/tenants/{tenant_id}/stats", response_model=ApiResponse)
+async def lead_stats(
+    tenant_id: UUID,
+    tenant_repo: TenantRepository = Depends(get_tenant_repo),
+    lead_repo: LeadRepository = Depends(get_lead_repo)
+):
+    """Get lead statistics for a tenant."""
+    tenant = await tenant_repo.get_by_id(tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+        
+    stats = await lead_repo.get_stats(tenant_id)
+    return success_response(data=stats, message="Lead statistics retrieved successfully")
 
 
 @router.get("/tenants/{tenant_id}", response_model=ApiResponse)
