@@ -152,6 +152,17 @@ class LeadResponse(BaseModel):
     is_bant_qualified: Optional[bool] = None
 
 
+
+class LeadStats(BaseModel):
+    """Statistics for Leads."""
+    
+    total_leads: int
+    new_leads: int
+    engaged_leads: int
+    qualified_leads: int
+    meetings_scheduled: int
+
+
 class LeadSummary(BaseModel):
     """Summary schema for Lead."""
     
