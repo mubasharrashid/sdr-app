@@ -45,14 +45,14 @@ class DashboardRepository:
                 stats.total_leads += 1
                 status = lead.get("status", "new")
                 
-                if status == "new":
-                    stats.new_leads += 1
-                elif status in ("contacted", "in_progress"):
-                    stats.contacted_leads += 1
+                if status == "converted":
+                    stats.converted_leads += 1
                 elif status == "qualified":
                     stats.qualified_leads += 1
-                elif status == "converted":
-                    stats.converted_leads += 1
+                elif status in ("contacted", "in_progress") or (lead.get("emails_sent", 0) or 0) > 0 or (lead.get("calls_made", 0) or 0) > 0:
+                    stats.contacted_leads += 1
+                elif status == "new":
+                    stats.new_leads += 1
                 
                 # Aggregate email stats
                 stats.emails_sent += lead.get("emails_sent", 0) or 0
