@@ -129,6 +129,7 @@ async def list_leads(
     has_emails_replied: Optional[bool] = Query(None, description="Filter leads that have email replies (true) or no replies (false)"),
     has_meetings_booked: Optional[bool] = Query(None, description="Filter leads that have meetings booked (true) or no meetings (false)"),
     has_been_contacted: Optional[bool] = Query(None, description="Filter leads that have been contacted via calls or emails (true) or not contacted (false)"),
+    q: Optional[str] = Query(None, description="Search by name, email, or company"),
     page: int = Query(1, ge=1, description="Page number"),
     pageSize: int = Query(10, ge=1, le=100, description="Items per page"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
@@ -143,6 +144,7 @@ async def list_leads(
     - source: Filter by lead source (apollo, linkedin, website, import, referral, etc.)
     - start_date/end_date: Filter by creation date range
     - Activity filters: Filter by interaction history (calls, emails, replies, meetings)
+    - q: Search by name, email, or company
     """
     tenant = await tenant_repo.get_by_id(tenant_id)
     if not tenant:
@@ -162,7 +164,8 @@ async def list_leads(
         has_been_contacted=has_been_contacted,
         source=source,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
+        search_query=q
     )
     return paginated_response(
         items=[_add_lead_computed_fields(i) for i in items],

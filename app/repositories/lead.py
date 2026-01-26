@@ -46,10 +46,15 @@ class LeadRepository:
         has_been_contacted: Optional[bool] = None,
         source: Optional[str] = None,
         start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None,
+        search_query: Optional[str] = None
     ) -> Tuple[List[dict], int]:
         """Get all leads for a tenant with optional activity filters."""
         query = self.client.table(self.table).select("*", count="exact").eq("tenant_id", str(tenant_id))
+        
+        if search_query:
+            query = query.or_(f"email.ilike.%{search_query}%,full_name.ilike.%{search_query}%,company_name.ilike.%{search_query}%")
+            
         if status:
             query = query.eq("status", status)
         if campaign_id:
