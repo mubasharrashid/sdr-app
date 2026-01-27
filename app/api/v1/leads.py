@@ -5,6 +5,7 @@ from uuid import UUID
 from datetime import datetime
 import csv
 import io
+from email_validator import validate_email, EmailNotValidError
 
 from supabase import create_client, Client
 
@@ -171,25 +172,67 @@ async def import_leads(
         total_rows += 1
         row_number = total_rows + 1  # +1 for header row
 
-        # Extract fields from CSV (note some headers have trailing spaces)
+        # Extract raw fields from CSV (note some headers have trailing spaces)
         full_name = (row.get("Full Name") or "").strip() or None
         first_name = (row.get("First Name ") or "").strip() or None
         last_name = (row.get("Last Name ") or "").strip() or None
-        email = (row.get("Email") or "").strip() or None
-        phone = (row.get("Phone") or "").strip() or None
+        raw_email = (row.get("Email") or "").strip() or None
+        raw_phone = (row.get("Phone") or "").strip() or None
         linkedin_url = (row.get("Linkedin URL") or "").strip() or None
         status = (row.get("Status") or "").strip() or None
         reference_person = (row.get("Reference Person") or "").strip() or None
         organization_name = (row.get("Organization Name") or "").strip() or None
         person_title = (row.get("Person Title") or "").strip() or None
 
-        # Skip rows without contact info (DB constraint: email OR phone required)
+        # Validate reference person (required for this import)
+        if not reference_person:
+            skipped_count += 1
+            row_errors.append(
+                {
+                    "row": row_number,
+                    "reason": "Reference Person is required and cannot be empty",
+                }
+            )
+            continue
+
+        # Validate and normalize email (if provided)
+        email = None
+        if raw_email:
+            try:
+                validated = validate_email(raw_email, check_deliverability=False)
+                email = validated.email
+            except EmailNotValidError as exc:
+                skipped_count += 1
+                row_errors.append(
+                    {
+                        "row": row_number,
+                        "reason": "Invalid email format",
+                        "email": raw_email,
+                        "error": str(exc),
+                    }
+                )
+                continue
+
+        # Normalize phone (keep digits and leading +), basic length check
+        phone = None
+        if raw_phone:
+            # Keep digits and plus sign
+            cleaned = "".join(ch for ch in raw_phone if ch.isdigit() or ch == "+")
+            # Require at least 7 digits to consider it valid
+            digit_count = sum(ch.isdigit() for ch in cleaned)
+            if digit_count >= 7:
+                phone = cleaned
+            else:
+                # Treat as missing phone but don't fail the row if email is valid
+                phone = None
+
+        # Skip rows without valid contact info (DB constraint: email OR phone required)
         if not email and not phone:
             skipped_count += 1
             row_errors.append(
                 {
                     "row": row_number,
-                    "reason": "Missing both email and phone; at least one is required",
+                    "reason": "Missing valid email and phone; at least one is required",
                 }
             )
             continue
@@ -208,11 +251,10 @@ async def import_leads(
                 )
                 continue
 
-        # Build custom_fields and core fields
-        custom_fields = {}
-        if reference_person:
-            # Store reference person in custom_fields to keep schema flexible
-            custom_fields["reference_person"] = reference_person
+        # # Build custom_fields and core fields
+        # custom_fields = {}
+        # # Store reference person in custom_fields to keep schema flexible
+        # custom_fields["reference_person"] = reference_person
 
         create_data = LeadCreateInternal(
             tenant_id=str(tenant_id),
@@ -226,7 +268,7 @@ async def import_leads(
             linkedin_url=linkedin_url,
             source=source,
             status=status or "new",
-            custom_fields=custom_fields,
+            icp_reference_person=reference_person,
         )
 
         try:
