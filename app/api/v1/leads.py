@@ -1,8 +1,10 @@
 """API endpoints for Leads and related entities."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+import csv
+import io
 
 from supabase import create_client, Client
 
@@ -94,6 +96,7 @@ def _add_meeting_computed_fields(data: dict) -> dict:
 # Lead Endpoints
 # ============================================================================
 
+
 @router.post("/tenants/{tenant_id}", response_model=ApiResponse)
 async def create_lead(
     tenant_id: UUID, data: LeadCreate,
@@ -114,6 +117,142 @@ async def create_lead(
     create_data = LeadCreateInternal(tenant_id=str(tenant_id), **data.model_dump(exclude_none=True))
     lead = await lead_repo.create(create_data)
     return success_response(data=_add_lead_computed_fields(lead), message="Lead created successfully", status_code=201)
+
+
+@router.post("/tenants/{tenant_id}/import", response_model=ApiResponse)
+async def import_leads(
+    tenant_id: UUID,
+    file: UploadFile = File(..., description="CSV file containing leads"),
+    source: str = Query("manual", description="Lead source (e.g., manual, import, apollo, linkedin)"),
+    tenant_repo: TenantRepository = Depends(get_tenant_repo),
+    lead_repo: LeadRepository = Depends(get_lead_repo),
+):
+    """
+    Import leads from a CSV file for a tenant.
+
+    Expected CSV headers:
+    - Full Name
+    - First Name 
+    - Last Name 
+    - Email
+    - Phone
+    - Linkedin URL
+    - Status
+    - Reference Person
+    - Organization Name
+    - Person Title
+
+    Notes:
+    - `tenant_id` comes from the path.
+    - `source` is provided as a query parameter (defaults to "manual").
+    - Duplicates by email (within the same tenant) are skipped.
+    - Rows without both email and phone are skipped (DB constraint).
+    """
+    # Verify tenant exists
+    tenant = await tenant_repo.get_by_id(tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    # Read and decode CSV content
+    try:
+        content = await file.read()
+        text = content.decode("utf-8")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Unable to read or decode CSV file")
+
+    reader = csv.DictReader(io.StringIO(text))
+
+    total_rows = 0
+    imported_count = 0
+    skipped_count = 0
+    row_errors = []
+
+    for row in reader:
+        total_rows += 1
+        row_number = total_rows + 1  # +1 for header row
+
+        # Extract fields from CSV (note some headers have trailing spaces)
+        full_name = (row.get("Full Name") or "").strip() or None
+        first_name = (row.get("First Name ") or "").strip() or None
+        last_name = (row.get("Last Name ") or "").strip() or None
+        email = (row.get("Email") or "").strip() or None
+        phone = (row.get("Phone") or "").strip() or None
+        linkedin_url = (row.get("Linkedin URL") or "").strip() or None
+        status = (row.get("Status") or "").strip() or None
+        reference_person = (row.get("Reference Person") or "").strip() or None
+        organization_name = (row.get("Organization Name") or "").strip() or None
+        person_title = (row.get("Person Title") or "").strip() or None
+
+        # Skip rows without contact info (DB constraint: email OR phone required)
+        if not email and not phone:
+            skipped_count += 1
+            row_errors.append(
+                {
+                    "row": row_number,
+                    "reason": "Missing both email and phone; at least one is required",
+                }
+            )
+            continue
+
+        # Check for duplicate email within tenant
+        if email:
+            existing = await lead_repo.get_by_email(tenant_id, email)
+            if existing:
+                skipped_count += 1
+                row_errors.append(
+                    {
+                        "row": row_number,
+                        "reason": "Lead with this email already exists",
+                        "email": email,
+                    }
+                )
+                continue
+
+        # Build custom_fields and core fields
+        custom_fields = {}
+        if reference_person:
+            # Store reference person in custom_fields to keep schema flexible
+            custom_fields["reference_person"] = reference_person
+
+        create_data = LeadCreateInternal(
+            tenant_id=str(tenant_id),
+            email=email,
+            phone=phone,
+            first_name=first_name,
+            last_name=last_name,
+            full_name=full_name,
+            company_name=organization_name,
+            job_title=person_title,
+            linkedin_url=linkedin_url,
+            source=source,
+            status=status or "new",
+            custom_fields=custom_fields,
+        )
+
+        try:
+            lead = await lead_repo.create(create_data)
+            imported_count += 1
+        except Exception as exc:
+            skipped_count += 1
+            row_errors.append(
+                {
+                    "row": row_number,
+                    "reason": "Failed to create lead",
+                    "error": str(exc),
+                }
+            )
+
+    summary = {
+        "totalRows": total_rows,
+        "imported": imported_count,
+        "skipped": skipped_count,
+        "rowErrors": row_errors,
+    }
+
+    return success_response(
+        data=summary,
+        message="Leads imported successfully" if imported_count else "No leads were imported",
+    )
 
 
 @router.get("/tenants/{tenant_id}/stats", response_model=ApiResponse)
