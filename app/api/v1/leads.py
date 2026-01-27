@@ -123,7 +123,7 @@ async def create_lead(
 async def import_leads(
     tenant_id: UUID,
     file: UploadFile = File(..., description="CSV file containing leads"),
-    source: str = Query("manual", description="Lead source (e.g., manual, import, apollo, linkedin)"),
+    source: str = Query("manual_import", description="Lead source (e.g., manual_import, import, apollo, linkedin)"),
     tenant_repo: TenantRepository = Depends(get_tenant_repo),
     lead_repo: LeadRepository = Depends(get_lead_repo),
 ):
